@@ -160,7 +160,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 				$oVCal->METHOD = $sMethod;
 				$sBody = $oVCal->serialize();
 
-				if (!$bDefaultAccountAsEmail && empty($sCalendarId)) {
+				if (!$bDefaultAccountAsEmail/* && empty($sCalendarId)*/) {
 					$oCalendar = $this->getDefaultCalendar($oDefaultUser->PublicId);
 					if ($oCalendar) {
 						$sCalendarId = $oCalendar->Id;
