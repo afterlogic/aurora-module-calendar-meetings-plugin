@@ -479,6 +479,28 @@ class Module extends \Aurora\System\Module\AbstractModule
 								$oCalendar->DisplayName, 
 								$sStartDate
 							);
+						} else {
+							$aValues = array(
+								'attendee' => $sAttendee,
+								'organizer' => $oUser->PublicId,
+								'calendarId' => $oEvent->IdCalendar,
+								'eventId' => $oVEventResult->Id
+							);
+							$sHref = MeetingsHelper::getDomainForInvitation($sAttendee) . '/?invite=';
+					
+							$aValues['action'] = 'ACCEPTED';
+							$sEncodedValueAccept = \Aurora\System\Api::EncodeKeyValues($aValues);
+							$aValues['action'] = 'TENTATIVE';
+							$sEncodedValueTentative = \Aurora\System\Api::EncodeKeyValues($aValues);
+							$aValues['action'] = 'DECLINED';
+							$sEncodedValueDecline = \Aurora\System\Api::EncodeKeyValues($aValues);
+					
+							$sHtml = strtr($sHtml, array(
+								'{{Attendee}}'		=> $sAttendee,
+								'{{HrefAccept}}'	=> $sHref . $sEncodedValueAccept,
+								'{{HrefTentative}}'	=> $sHref . $sEncodedValueTentative,
+								'{{HrefDecline}}'	=> $sHref . $sEncodedValueDecline
+							));
 						}
 
 						if (MeetingsHelper::isEmailExternal($sAttendee)) {
@@ -681,11 +703,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aEvent['appointmentAccess'] = 0;
 	}
 
-	public function GetMailMessageBodyForEvent($CalendarId, $EventId, $Location, $Description, $Attendee, $CalendarDisplayName, $StartDate) 
+	public function GetMailMessageBodyForEvent($Location, $Description, $CalendarDisplayName, $StartDate) 
 	{
 		Api::checkUserRoleIsAtLeast(UserRole::NormalUser);
 		$oUser = Api::getAuthenticatedUser();
 
-		return MeetingsHelper::createHtmlFromEvent($CalendarId, $EventId, $Location, $Description, $oUser->PublicId, $Attendee, $CalendarDisplayName, $StartDate);
+		return MeetingsHelper::createCustomHtmlFromEvent($Location, $Description, $oUser->PublicId, $CalendarDisplayName, $StartDate);
 	}
 }

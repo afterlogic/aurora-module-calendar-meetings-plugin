@@ -137,7 +137,7 @@ class Helper
 		return false;
 	}
 
-	protected static function getDomainForInvitation($email)
+	public static function getDomainForInvitation($email)
 	{
 		$domainForInvitation = '';
 		$calendarMeetingsPluginModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
@@ -197,6 +197,32 @@ class Helper
 				'{{HrefAccept}}'			=> $sHref.$sEncodedValueAccept,
 				'{{HrefTentative}}'		=> $sHref.$sEncodedValueTentative,
 				'{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline
+			));
+		}
+
+		return $sHtml;
+	}
+
+	public static function createCustomHtmlFromEvent($sEventLocation, $sEventDescription, $sAccountEmail, $sCalendarName, $sStartDate)
+	{
+		$sHtml = '';
+
+		$oCalendarMeetingsModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
+		if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule)
+		{
+			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
+			$sHtml = strtr($sHtml, array(
+				'{{INVITE/LOCATION}}'	=> $oCalendarMeetingsModule->i18N('LOCATION'),
+				'{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
+				'{{INVITE/DESCRIPTION}}'	=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
+				'{{INVITE/INFORMATION}}'	=> $oCalendarMeetingsModule->i18N('INFORMATION', array('Email' => '{{Attendee}}')),
+				'{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
+				'{{INVITE/TENTATIVE}}'	=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
+				'{{INVITE/DECLINE}}'		=> $oCalendarMeetingsModule->i18N('DECLINE'),
+				'{{Calendar}}'			=> $sCalendarName.' '.$sAccountEmail,
+				'{{Location}}'			=> $sEventLocation,
+				'{{Start}}'				=> $sStartDate,
+				'{{Description}}'			=> $sEventDescription
 			));
 		}
 
