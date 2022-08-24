@@ -175,6 +175,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 						}
 					}
 
+					$bFoundAttendee = false;
 					foreach($oVEvent->ATTENDEE as &$oAttendee)
 					{
 						$sEmail = str_replace('mailto:', '', strtolower((string)$oAttendee));
@@ -183,16 +184,19 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 							$oAttendee['CN'] = $sCN;
 							$oAttendee['PARTSTAT'] = $sPartstat;
 							$oAttendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+							$bFoundAttendee = true;
 							break;
 						}
 					}
 					// unset($oVEvent->ATTENDEE);
 
-					// $oVEvent->add('ATTENDEE', 'mailto:'.$sAttendee, array(
-					// 	'CN' => $sCN,
-					// 	'PARTSTAT' => $sPartstat,
-					// 	'RESPONDED-AT' => gmdate("Ymd\THis\Z")
-					// ));
+					if (!$bFoundAttendee) {
+						$oVEvent->add('ATTENDEE', 'mailto:'.$sAttendee, array(
+							'CN' => $sCN,
+							'PARTSTAT' => $sPartstat,
+							'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+						));
+					}
 				}
 
 				$oVCal->METHOD = $sMethod;
