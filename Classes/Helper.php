@@ -137,6 +137,20 @@ class Helper
 		return false;
 	}
 
+	public static function getEmailForInternalUsers($email) 
+	{
+		$InformatikProjectsModule = Api::GetModule('InformatikProjects');
+		if ($InformatikProjectsModule) {
+			$senderForExternalRecipients = $InformatikProjectsModule->getConfig('SenderForExternalRecipients');
+			if (!empty($senderForExternalRecipients) && !self::isEmailExternal($email)) {
+				$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
+				$email = $oEmail->GetEmail();
+			}
+		}
+
+		return $email;
+	}
+
 	public static function getDomainForInvitation($email)
 	{
 		$domainForInvitation = '';

@@ -7,6 +7,8 @@
 
 namespace Aurora\Modules\CalendarMeetingsPlugin;
 
+use Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper as MeetingsHelper;
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
@@ -65,6 +67,8 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 		$oDefaultUser = null;
 		$bDefaultAccountAsEmail = false;
 		$bIsDefaultAccount = false;
+
+		$sAttendee = MeetingsHelper::getEmailForInternalUsers($sAttendee);
 
 		if (isset($sUserPublicId))
 		{
