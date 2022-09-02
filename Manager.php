@@ -8,6 +8,7 @@
 namespace Aurora\Modules\CalendarMeetingsPlugin;
 
 use Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper as MeetingsHelper;
+use Aurora\System\Api;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -68,7 +69,37 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 		$bDefaultAccountAsEmail = false;
 		$bIsDefaultAccount = false;
 
-//		$sAttendee = MeetingsHelper::getEmailForInternalUsers($sAttendee);
+		$oVEvent = null;
+		$oVCal = \Sabre\VObject\Reader::read($sData);
+
+		if ($oVCal) {
+			$sMethod = $sMethodOriginal = (string) $oVCal->METHOD;
+			$aVEvents = $oVCal->getBaseComponents('VEVENT');
+
+			if (isset($aVEvents) && count($aVEvents) > 0) {
+				$oVEvent = $aVEvents[0];
+
+				$systemAttendee = null;
+				$InformatikProjectsModule = Api::GetModule('InformatikProjects');
+				if ($InformatikProjectsModule) {
+					$senderForExternalRecipients = $InformatikProjectsModule->getConfig('SenderForExternalRecipients');
+					if (!empty($senderForExternalRecipients)) {
+						$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
+						$systemAttendee = $oEmail->GetEmail();
+					}
+				}
+
+				if ($systemAttendee) {
+					foreach($oVEvent->ATTENDEE as &$oAttendee) {
+						$sEmail = str_replace('mailto:', '', strtolower((string)$oAttendee));
+						if (strtolower($sEmail) === strtolower($systemAttendee)) {
+							$sAttendee = MeetingsHelper::getEmailForInternalUsers($sAttendee);
+							break;
+						}
+					}
+				}
+			}
+		}
 
 		if (isset($sUserPublicId))
 		{
@@ -124,124 +155,116 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
 		$sTo = $sSubject = $sBody = $sSummary = '';
 
-		$oVCal = \Sabre\VObject\Reader::read($sData);
-		if ($oVCal)
-		{
-			$sMethod = $sMethodOriginal = (string) $oVCal->METHOD;
-			$aVEvents = $oVCal->getBaseComponents('VEVENT');
+		if ($oVEvent) {
 
-			if (isset($aVEvents) && count($aVEvents) > 0)
+			$sEventId = (string)$oVEvent->UID;
+			if (isset($oVEvent->SUMMARY))
 			{
-				$oVEvent = $aVEvents[0];
-				$sEventId = (string)$oVEvent->UID;
-				if (isset($oVEvent->SUMMARY))
+				$sSummary = (string)$oVEvent->SUMMARY;
+			}
+			if (isset($oVEvent->ORGANIZER))
+			{
+				$sTo = str_replace('mailto:', '', strtolower((string)$oVEvent->ORGANIZER));
+				$iPos = strpos($sTo, 'principals/');
+				if ($iPos !== false)
 				{
-					$sSummary = (string)$oVEvent->SUMMARY;
+					$sTo = \trim(substr($sTo, $iPos + 11), '/');
 				}
-				if (isset($oVEvent->ORGANIZER))
+			}
+			if (strtoupper($sMethod) === 'REQUEST')
+			{
+				$sMethod = 'REPLY';
+				$sSubject = $sSummary;
+
+				$sPartstat = strtoupper($sAction);
+				switch ($sPartstat)
 				{
-					$sTo = str_replace('mailto:', '', strtolower((string)$oVEvent->ORGANIZER));
-					$iPos = strpos($sTo, 'principals/');
-					if ($iPos !== false)
-					{
-						$sTo = \trim(substr($sTo, $iPos + 11), '/');
-					}
-				}
-				if (strtoupper($sMethod) === 'REQUEST')
-				{
-					$sMethod = 'REPLY';
-					$sSubject = $sSummary;
-
-					$sPartstat = strtoupper($sAction);
-					switch ($sPartstat)
-					{
-						case 'ACCEPTED':
-							$sSubject = 'Accepted: '. $sSubject;
-							break;
-						case 'DECLINED':
-							$sSubject = 'Declined: '. $sSubject;
-							break;
-						case 'TENTATIVE':
-							$sSubject = 'Tentative: '. $sSubject;
-							break;
-					}
-
-					$sCN = '';
-					if (isset($oDefaultUser) && $sAttendee ===  $oDefaultUser->PublicId)
-					{
-						if (!empty($oDefaultUser->Name))
-						{
-							$sCN = $oDefaultUser->Name;
-						}
-						else
-						{
-							$sCN = $sAttendee;
-						}
-					}
-
-					$bFoundAttendee = false;
-					foreach($oVEvent->ATTENDEE as &$oAttendee)
-					{
-						$sEmail = str_replace('mailto:', '', strtolower((string)$oAttendee));
-						if (strtolower($sEmail) === strtolower($sAttendee))
-						{
-							$oAttendee['CN'] = $sCN;
-							$oAttendee['PARTSTAT'] = $sPartstat;
-							$oAttendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
-							$bFoundAttendee = true;
-							break;
-						}
-					}
-					// unset($oVEvent->ATTENDEE);
-
-					if (!$bFoundAttendee) {
-						$oVEvent->add('ATTENDEE', 'mailto:'.$sAttendee, array(
-							'CN' => $sCN,
-							'PARTSTAT' => $sPartstat,
-							'RESPONDED-AT' => gmdate("Ymd\THis\Z")
-						));
-					}
+					case 'ACCEPTED':
+						$sSubject = 'Accepted: '. $sSubject;
+						break;
+					case 'DECLINED':
+						$sSubject = 'Declined: '. $sSubject;
+						break;
+					case 'TENTATIVE':
+						$sSubject = 'Tentative: '. $sSubject;
+						break;
 				}
 
-				$oVCal->METHOD = $sMethod;
-				$oVEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
-
-				$sBody = $oVCal->serialize();
-
-				if ($sCalendarId !== false && $bExternal === false && !$bDefaultAccountAsEmail)
+				$sCN = '';
+				if (isset($oDefaultUser) && $sAttendee ===  $oDefaultUser->PublicId)
 				{
-					unset($oVCal->METHOD);
-					if (isset($oDefaultUser))
+					if (!empty($oDefaultUser->Name))
 					{
-						if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL')
-						{
-							$this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
-						} else {
-//						if ($oDefaultUser->PublicId !== $sAttendee) {
-							$this->oStorage->updateEventRaw($oDefaultUser->PublicId, $sCalendarId, $sEventId, $oVCal->serialize());
-						}
-					}
-				}
-
-				if (strtoupper($sMethodOriginal) == 'REQUEST'/* && (strtoupper($sAction) !== 'DECLINED')*/)
-				{
-					if (empty($sTo))
-					{
-						throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(\Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer);
-					}
-					else if (!empty($sBody) && isset($oDefaultUser) && $oDefaultUser instanceof \Aurora\Modules\Core\Classes\User)
-					{
-						$bResult = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($oDefaultUser->PublicId, $sTo, $sSubject, $sBody, $sMethod, '', $oFromAccount, $sAttendee);
+						$sCN = $oDefaultUser->Name;
 					}
 					else
 					{
-						throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(\Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessage);
+						$sCN = $sAttendee;
 					}
+				}
+
+				// $bFoundAttendee = false;
+				foreach($oVEvent->ATTENDEE as &$oAttendee)
+				{
+					$sEmail = str_replace('mailto:', '', strtolower((string)$oAttendee));
+					if (strtolower($sEmail) === strtolower($sAttendee))
+					{
+						$oAttendee['CN'] = $sCN;
+						$oAttendee['PARTSTAT'] = $sPartstat;
+						$oAttendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+						// $bFoundAttendee = true;
+						break;
+					}
+				}
+				// unset($oVEvent->ATTENDEE);
+
+				// if (!$bFoundAttendee) {
+				// 	$oVEvent->add('ATTENDEE', 'mailto:'.$sAttendee, array(
+				// 		'CN' => $sCN,
+				// 		'PARTSTAT' => $sPartstat,
+				// 		'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+				// 	));
+				// }
+			}
+
+			$oVCal->METHOD = $sMethod;
+			$oVEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
+
+			$sBody = $oVCal->serialize();
+
+			if ($sCalendarId !== false && $bExternal === false && !$bDefaultAccountAsEmail)
+			{
+				unset($oVCal->METHOD);
+				if (isset($oDefaultUser))
+				{
+					if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL')
+					{
+						$this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
+					} else {
+//						if ($oDefaultUser->PublicId !== $sAttendee) {
+						$this->oStorage->updateEventRaw($oDefaultUser->PublicId, $sCalendarId, $sEventId, $oVCal->serialize());
+					}
+				}
+			}
+
+			if (strtoupper($sMethodOriginal) == 'REQUEST'/* && (strtoupper($sAction) !== 'DECLINED')*/)
+			{
+				if (empty($sTo))
+				{
+					throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(\Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer);
+				}
+				else if (!empty($sBody) && isset($oDefaultUser) && $oDefaultUser instanceof \Aurora\Modules\Core\Classes\User)
+				{
+					$bResult = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($oDefaultUser->PublicId, $sTo, $sSubject, $sBody, $sMethod, '', $oFromAccount, $sAttendee);
 				}
 				else
 				{
-					$bResult = true;
+					throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(\Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessage);
 				}
+			}
+			else
+			{
+				$bResult = true;
 			}
 		}
 
