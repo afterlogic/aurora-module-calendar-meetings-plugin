@@ -68,7 +68,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 		$bDefaultAccountAsEmail = false;
 		$bIsDefaultAccount = false;
 
-		$sAttendee = MeetingsHelper::getEmailForInternalUsers($sAttendee);
+//		$sAttendee = MeetingsHelper::getEmailForInternalUsers($sAttendee);
 
 		if (isset($sUserPublicId))
 		{
