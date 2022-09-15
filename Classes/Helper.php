@@ -210,7 +210,10 @@ class Helper
 				'{{Description}}'			=> $sEventDescription,
 				'{{HrefAccept}}'			=> $sHref.$sEncodedValueAccept,
 				'{{HrefTentative}}'		=> $sHref.$sEncodedValueTentative,
-				'{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline
+				'{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline,
+
+				'{{INVITE/CSS_LOCATION}}'		=> empty($sEventLocation) ? 'display: none;' : '',
+				'{{INVITE/CSS_DESCRIPTION}}'	=> empty($sEventDescription) ? 'display: none;' : '',
 			));
 		}
 
@@ -236,7 +239,10 @@ class Helper
 				'{{Calendar}}'			=> $sCalendarName.' '.$sAccountEmail,
 				'{{Location}}'			=> $sEventLocation,
 				'{{Start}}'				=> $sStartDate,
-				'{{Description}}'			=> $sEventDescription
+				'{{Description}}'			=> $sEventDescription,
+
+				'{{INVITE/CSS_LOCATION}}'		=> empty($sEventLocation) ? 'display: none;' : '',
+				'{{INVITE/CSS_DESCRIPTION}}'	=> empty($sEventDescription) ? 'display: none;' : '',
 			));
 		}
 
@@ -351,8 +357,11 @@ class Helper
 				'{{Calendar}}'			=> $sCalendarName.' '.$sEmail,
 				'{{Location}}'			=> $aEvent['location'],
 				'{{Start}}'				=> $sStartDate,
-				'{{Description}}'			=> $aEvent['description'],
-				'{{Reaction}}'			=> $sActionName
+				'{{Description}}'		=> $aEvent['description'],
+				'{{Reaction}}'			=> $sActionName,
+
+				'{{CSS_LOCATION}}'		=> empty($aEvent['location']) ? 'display: none;' : '',
+				'{{CSS_DESCRIPTION}}'	=> empty($aEvent['description']) ? 'display: none;' : '',
 			]);
 		}
 
