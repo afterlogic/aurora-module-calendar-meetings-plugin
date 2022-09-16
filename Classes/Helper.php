@@ -210,7 +210,7 @@ class Helper
 				$sLocationBlock = '';
 			} else {
 				$sLocationBlock = strtr(self::$sLocationBlock, [
-					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATIPON'),
+					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
 					'{{EventLocation}}' => $sEventLocation
 				]);
 			}
@@ -256,7 +256,7 @@ class Helper
 				$sLocationBlock = '';
 			} else {
 				$sLocationBlock = strtr(self::$sLocationBlock, [
-					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATIPON'),
+					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
 					'{{EventLocation}}' => $sEventLocation
 				]);
 			}
@@ -390,7 +390,7 @@ class Helper
 				$sLocationBlock = '';
 			} else {
 				$sLocationBlock = strtr(self::$sLocationBlock, [
-					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATIPON'),
+					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
 					'{{EventLocation}}' => $aEvent['location']
 				]);
 			}
