@@ -463,6 +463,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					if (($sAttendee !==  $oUser->PublicId) &&
 						(!isset($oAttendee['PARTSTAT']) || 
 						(isset($oAttendee['PARTSTAT']) && (string)$oAttendee['PARTSTAT'] !== 'DECLINED'))) {
+						
 						$sStartDateFormat = $oVEventResult->DTSTART->hasTime() ? 'D, d. F, o, H:i' : 'D, d. F, o';
 						$sStartDate = Helper::getStrDate($oVEventResult->DTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
 						$sStartDate .= $oVEventResult->DTSTART->hasTime() ? ' Uhr' : '';
