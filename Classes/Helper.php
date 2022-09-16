@@ -385,16 +385,33 @@ class Helper
 		if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule)
 		{
 			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventSelfNotification.html');
+
+			if (empty($aEvent['location'])) {
+				$sLocationBlock = '';
+			} else {
+				$sLocationBlock = strtr(self::$sLocationBlock, [
+					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATIPON'),
+					'{{EventLocation}}' => $aEvent['location']
+				]);
+			}
+
+			if (empty($aEvent['description'])) {
+				$sDescriptionBlock = '';
+			} else {
+				$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
+					'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
+					'{{EventDescription}}' => $aEvent['description']
+				]);
+			}
+
 			$sHtml = strtr($sHtml, [
-				'{{LOCATION}}'			=> $oCalendarMeetingsModule->i18N('LOCATION'),
 				'{{WHEN}}'				=> $oCalendarMeetingsModule->I18N('WHEN'),
-				'{{DESCRIPTION}}'		=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
 				'{{INFORMATION}}'		=> $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sEmail]),
 				'{{REACTION}}'			=> $oCalendarMeetingsModule->i18N('USER_REACTION'),
 				'{{Calendar}}'			=> $sCalendarName.' '.$sEmail,
-				'{{Location}}'			=> $aEvent['location'],
+				'{{LocationBlock}}'		=> $sLocationBlock,
 				'{{Start}}'				=> $sStartDate,
-				'{{Description}}'			=> $aEvent['description'],
+				'{{DescriptionBlock}}'	=> $sDescriptionBlock,
 				'{{Reaction}}'			=> $sActionName
 			]);
 		}
