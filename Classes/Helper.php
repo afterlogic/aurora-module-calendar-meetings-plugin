@@ -206,21 +206,21 @@ class Helper
 		{
 			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
 
-			if (empty($sEventLocation)) {
+			if (empty((string) $sEventLocation)) {
 				$sLocationBlock = '';
 			} else {
 				$sLocationBlock = strtr(self::$sLocationBlock, [
 					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
-					'{{EventLocation}}' => $sEventLocation
+					'{{EventLocation}}' => (string) $sEventLocation
 				]);
 			}
 
-			if (empty($sEventDescription)) {
+			if (empty((string) $sEventDescription)) {
 				$sDescriptionBlock = '';
 			} else {
 				$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
 					'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
-					'{{EventDescription}}' => $sEventDescription
+					'{{EventDescription}}' => (string) $sEventDescription
 				]);
 			}
 
@@ -252,12 +252,12 @@ class Helper
 		{
 			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
 
-			if (empty($sEventLocation)) {
+			if (empty((string) $sEventLocation)) {
 				$sLocationBlock = '';
 			} else {
 				$sLocationBlock = strtr(self::$sLocationBlock, [
 					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
-					'{{EventLocation}}' => $sEventLocation
+					'{{EventLocation}}' => (string) $sEventLocation
 				]);
 			}
 
@@ -386,21 +386,21 @@ class Helper
 		{
 			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventSelfNotification.html');
 
-			if (empty($aEvent['location'])) {
+			if (empty((string) $aEvent['location'])) {
 				$sLocationBlock = '';
 			} else {
 				$sLocationBlock = strtr(self::$sLocationBlock, [
 					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
-					'{{EventLocation}}' => $aEvent['location']
+					'{{EventLocation}}' => (string) $aEvent['location']
 				]);
 			}
 
-			if (empty($aEvent['description'])) {
+			if (empty((string) $aEvent['description'])) {
 				$sDescriptionBlock = '';
 			} else {
 				$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
 					'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
-					'{{EventDescription}}' => $aEvent['description']
+					'{{EventDescription}}' => (string) $aEvent['description']
 				]);
 			}
 
