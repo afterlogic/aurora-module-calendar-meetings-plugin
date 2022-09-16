@@ -21,6 +21,15 @@ use Aurora\System\Api;
  */
 class Helper
 {
+	public static $sLocationBlock = '<tr>
+	<td style="color: #777777; vertical-align: top; width: 1px;">{{LOCATION}}</td>
+	<td style="vertical-align: top; -ms-word-break: break-all; word-wrap: break-word;">{{EventLocation}}</td>
+</tr>';
+	public static $sDescriptionBlock = '<tr>
+	<td style="color: #777777; vertical-align: top; width: 1px;">{{DESCRIPTION}}</td>
+	<td style="vertical-align: top; -ms-word-break: break-all; word-wrap: break-word;">{{EventDescription}}</td>
+</tr>';
+
 	/**
 	 * @param string $sUserPublicId
 	 * @param string $sTo
@@ -196,24 +205,38 @@ class Helper
 		if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule)
 		{
 			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
+
+			if (empty($sEventLocation)) {
+				$sLocationBlock = '';
+			} else {
+				$sLocationBlock = strtr(self::$sLocationBlock, [
+					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATIPON'),
+					'{{EventLocation}}' => $sEventLocation
+				]);
+			}
+
+			if (empty($sEventDescription)) {
+				$sDescriptionBlock = '';
+			} else {
+				$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
+					'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
+					'{{EventDescription}}' => $sEventDescription
+				]);
+			}
+
 			$sHtml = strtr($sHtml, array(
-				'{{INVITE/LOCATION}}'	=> $oCalendarMeetingsModule->i18N('LOCATION'),
 				'{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
-				'{{INVITE/DESCRIPTION}}'	=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
 				'{{INVITE/INFORMATION}}'	=> $oCalendarMeetingsModule->i18N('INFORMATION', array('Email' => $sAttendee)),
 				'{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
 				'{{INVITE/TENTATIVE}}'	=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
 				'{{INVITE/DECLINE}}'		=> $oCalendarMeetingsModule->i18N('DECLINE'),
 				'{{Calendar}}'			=> $sCalendarName.' '.$sAccountEmail,
-				'{{Location}}'			=> $sEventLocation,
+				'{{LocationBlock}}'			=> $sLocationBlock,
 				'{{Start}}'				=> $sStartDate,
-				'{{Description}}'			=> $sEventDescription,
+				'{{DescriptionBlock}}'			=> $sDescriptionBlock,
 				'{{HrefAccept}}'			=> $sHref.$sEncodedValueAccept,
 				'{{HrefTentative}}'		=> $sHref.$sEncodedValueTentative,
-				'{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline,
-
-				'{{INVITE/CSS_LOCATION}}'		=> empty($sEventLocation) ? 'display: none;' : '',
-				'{{INVITE/CSS_DESCRIPTION}}'	=> empty($sEventDescription) ? 'display: none;' : '',
+				'{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline
 			));
 		}
 
@@ -228,21 +251,35 @@ class Helper
 		if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule)
 		{
 			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
+
+			if (empty($sEventLocation)) {
+				$sLocationBlock = '';
+			} else {
+				$sLocationBlock = strtr(self::$sLocationBlock, [
+					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATIPON'),
+					'{{EventLocation}}' => $sEventLocation
+				]);
+			}
+
+			if (empty($sEventDescription)) {
+				$sDescriptionBlock = '';
+			} else {
+				$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
+					'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
+					'{{EventDescription}}' => $sEventDescription
+				]);
+			}
+
 			$sHtml = strtr($sHtml, array(
-				'{{INVITE/LOCATION}}'	=> $oCalendarMeetingsModule->i18N('LOCATION'),
 				'{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
-				'{{INVITE/DESCRIPTION}}'	=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
 				'{{INVITE/INFORMATION}}'	=> $oCalendarMeetingsModule->i18N('INFORMATION', array('Email' => '{{Attendee}}')),
 				'{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
 				'{{INVITE/TENTATIVE}}'	=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
 				'{{INVITE/DECLINE}}'		=> $oCalendarMeetingsModule->i18N('DECLINE'),
 				'{{Calendar}}'			=> $sCalendarName.' '.$sAccountEmail,
-				'{{Location}}'			=> $sEventLocation,
+				'{{LocationBlock}}'			=> $sLocationBlock,
 				'{{Start}}'				=> $sStartDate,
-				'{{Description}}'			=> $sEventDescription,
-
-				'{{INVITE/CSS_LOCATION}}'		=> empty($sEventLocation) ? 'display: none;' : '',
-				'{{INVITE/CSS_DESCRIPTION}}'	=> empty($sEventDescription) ? 'display: none;' : '',
+				'{{DescriptionBlock}}'			=> $sDescriptionBlock
 			));
 		}
 
@@ -357,11 +394,8 @@ class Helper
 				'{{Calendar}}'			=> $sCalendarName.' '.$sEmail,
 				'{{Location}}'			=> $aEvent['location'],
 				'{{Start}}'				=> $sStartDate,
-				'{{Description}}'		=> $aEvent['description'],
-				'{{Reaction}}'			=> $sActionName,
-
-				'{{CSS_LOCATION}}'		=> empty($aEvent['location']) ? 'display: none;' : '',
-				'{{CSS_DESCRIPTION}}'	=> empty($aEvent['description']) ? 'display: none;' : '',
+				'{{Description}}'			=> $aEvent['description'],
+				'{{Reaction}}'			=> $sActionName
 			]);
 		}
 
