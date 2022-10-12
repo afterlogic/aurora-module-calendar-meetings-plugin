@@ -468,6 +468,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$sStartDate = Helper::getStrDate($oVEventResult->DTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
 						$sStartDate .= $oVEventResult->DTSTART->hasTime() ? ' Uhr' : '';
 
+						$sStartWeek = Helper::getStrDate($oVEventResult->DTSTART, $oUser->DefaultTimeZone, 'W');
+						$sStartDate .= ' ('.$this->i18N('WEEK_SHORT').$sStartWeek.')';
+
 						$oCalendar =  Api::GetModule('Calendar')->GetCalendar($sUserPublicId, $oEvent->IdCalendar);
 
 						if (!isset($sHtml)) {
