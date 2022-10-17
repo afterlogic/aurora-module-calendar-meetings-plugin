@@ -159,6 +159,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 					{
 						if (is_string($sResult))
 						{
+							$oModuleManager = \Aurora\System\Api::GetModuleManager();
+							$sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
 							$sResult = file_get_contents($this->GetPath().'/templates/CalendarEventInviteExternal.html');
 
 							$dt = new \DateTime();
@@ -229,6 +231,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 								'{{EVENT_DESCRIPTION}}' => $oEvent[0]['description'],
 								'{{EVENT_ACTION}}' => $sActionText,
 								'{{ACTION_COLOR}}' => $sActionColor,
+								'{{Theme}}' => $sTheme,
 							);
 
 							$sResult = strtr($sResult, $mResult);
