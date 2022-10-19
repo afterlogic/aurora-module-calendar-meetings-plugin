@@ -58,7 +58,9 @@ class Helper
 								'IdUser' => $oAccount->IdUser, 
 								'Emails' => $aEmails
 							];
+							$prevState = \Aurora\System\Api::skipCheckUserRole(true);
 							\Aurora\System\Api::GetModule('Mail')->broadcastEvent('AfterUseEmails', $aArgs);
+							\Aurora\System\Api::skipCheckUserRole($prevState);
 						}
 
 						return true;
