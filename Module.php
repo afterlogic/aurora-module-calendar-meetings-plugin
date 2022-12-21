@@ -437,7 +437,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 			$sOrganizer = (isset($oVEvent->ORGANIZER)) ?
 					str_replace('mailto:', '', strtolower((string)$oVEvent->ORGANIZER)) : null;
-			$iPos = strpos($sOrganizer, 'principals/');
+			$iPos = false;
+			if (!empty($sOrganizer)) {
+				$iPos = strpos($sOrganizer, 'principals/');
+			}
+
 			if ($iPos !== false)
 			{
 				$sOrganizer = \trim(substr($sOrganizer, $iPos + 11), '/');
