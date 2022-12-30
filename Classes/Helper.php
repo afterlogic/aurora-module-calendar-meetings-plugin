@@ -211,11 +211,11 @@ class Helper
 				}
 				catch (\Aurora\System\Exceptions\ManagerException $oException)
 				{
-					$iCode = \Core\Notifications::CanNotSendMessage;
+					$iCode = \Aurora\Modules\Mail\Enums\ErrorCodes::CannotSendMessage;
 					switch ($oException->getCode())
 					{
-						case Errs::Mail_InvalidRecipients:
-							$iCode = \Core\Notifications::InvalidRecipients;
+						case \Aurora\Modules\Mail\Enums\ErrorCodes::CannotSendMessageInvalidRecipients:
+							$iCode = \Aurora\Modules\Mail\Enums\ErrorCodes::CannotSendMessageInvalidRecipients;
 							break;
 					}
 
