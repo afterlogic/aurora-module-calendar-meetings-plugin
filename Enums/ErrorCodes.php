@@ -14,14 +14,14 @@ namespace Aurora\Modules\CalendarMeetingsPlugin\Enums;
  */
 class ErrorCodes
 {
-	const CannotSendAppointmentMessage = 1001;
-	const CannotSendAppointmentMessageNoOrganizer = 1002;
+    public const CannotSendAppointmentMessage = 1001;
+    public const CannotSendAppointmentMessageNoOrganizer = 1002;
 
-	/**
-	 * @var array
-	 */
-	protected $aConsts = [
-		'CannotSendAppointmentMessage' => self::CannotSendAppointmentMessage,
-		'CannotSendAppointmentMessageNoOrganizer' => self::CannotSendAppointmentMessageNoOrganizer
-	];
+    /**
+     * @var array
+     */
+    protected $aConsts = [
+        'CannotSendAppointmentMessage' => self::CannotSendAppointmentMessage,
+        'CannotSendAppointmentMessageNoOrganizer' => self::CannotSendAppointmentMessageNoOrganizer
+    ];
 }
