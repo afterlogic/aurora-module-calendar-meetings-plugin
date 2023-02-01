@@ -423,12 +423,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onUpdateEventAttendees($aData, &$oEvent)
     {
-        $attendees = $aData['attendees'];
-        $owner = isset($aData['owner']) ? $aData['owner'] : '';
-        $UserPublicId = isset($aData['UserPublicId']) ? $aData['UserPublicId'] : '';
-        if ($owner && $UserPublicId && $owner === $UserPublicId) {
-            $oEvent->Attendees = @json_decode($attendees, true);
-        }
+        $oEvent->Attendees = @json_decode($aData['attendees'], true);
     }
 
     public function onProcessICSUpdateEvent(&$aData, &$mResult)
