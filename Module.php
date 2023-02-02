@@ -71,7 +71,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function UpdateAttendeeStatus($UserId, $File, $FromEmail)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        \Aurora\System\Api::CheckAccess($UserId);
         $sUserPublicId = \Aurora\System\Api::getUserPublicIdById($UserId);
         $mResult = false;
 
@@ -99,7 +99,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function SetAppointmentAction($UserId, $CalendarId, $EventId, $File, $AppointmentAction, $Attendee)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        \Aurora\System\Api::CheckAccess($UserId);
         $sUserPublicId = \Aurora\System\Api::getUserPublicIdById($UserId);
         $mResult = false;
 
