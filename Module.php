@@ -291,7 +291,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             }
         }
         //update only own attendees
-        if (!isset($sOwnerEmail) || isset($sOwnerEmail) && $sOwnerEmail === $sUserPublicId) {
+//        if (!isset($sOwnerEmail) || isset($sOwnerEmail) && $sOwnerEmail === $sUserPublicId) {
             if (isset($oVEvent->ATTENDEE)) {
                 $aAttendeeEmails = [];
                 foreach ($oEvent->Attendees as $aItem) {
@@ -374,7 +374,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                     }
                 }
             }
-        }
+//        }
     }
 
     public function onDeleteEvent($aData, &$oVCal)
