@@ -157,8 +157,8 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         unset($oVEvent);
                     }
                 }
-                $oVCal->METHOD = $sMethod;
-                $sBody = $oVCal->serialize();
+                $oVCalResult = clone $oVCal;
+                $oVCalResult->METHOD = $sMethod;
 
                 if ($sUserPublicId === null) {
                     $oCalendar = $this->getDefaultCalendar($oDefaultUser->PublicId);
@@ -188,12 +188,12 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(
                             \Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer
                         );
-                    } elseif (!empty($sBody) && isset($oDefaultUser) && $oDefaultUser instanceof User) {
+                    } elseif (isset($oDefaultUser) && $oDefaultUser instanceof User) {
                         $bResult = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage(
                             $oDefaultUser->PublicId,
                             $sTo,
                             $sSubject,
-                            $sBody,
+                            $oVCalResult,
                             $sMethod,
                             '',
                             $oFromAccount,

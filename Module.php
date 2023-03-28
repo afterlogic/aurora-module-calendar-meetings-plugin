@@ -326,10 +326,11 @@ class Module extends \Aurora\System\Module\AbstractModule
                     }
                 } else {
                     if (!isset($oPartstat) || (isset($oPartstat) && (string)$oPartstat != 'DECLINED')) {
-                        $oVCal->METHOD = 'CANCEL';
+                        $oVCalResult = clone $oVCal;
+                        $oVCalResult->METHOD = 'CANCEL';
                         $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
-                        \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sAttendee, $sSubject, $oVCal->serialize(), (string)$oVCal->METHOD);
-                        unset($oVCal->METHOD);
+
+                        \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sAttendee, $sSubject, $oVCalResult, (string)$oVCalResult->METHOD);
                     }
                 }
             }
@@ -368,8 +369,41 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                     $sHtml = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::createHtmlFromEvent($oEvent->IdCalendar, $oEvent->Id, $oUser->PublicId, $sAttendee, $oCalendar->DisplayName, $sStartDate, $oEvent->Location, $oEvent->Description);
 
-                    $oVCal->METHOD = 'REQUEST';
-                    \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sAttendee, (string)$oVEvent->SUMMARY, $oVCal->serialize(), (string)$oVCal->METHOD, $sHtml);
+                    $oVCalResult = clone $oVCal;
+                    $oVCalResult->METHOD = 'REQUEST';
+
+                    $isSendAppointmentMessage = true;
+
+                    $aEventData = \Aurora\Modules\Calendar\Module::getInstance()->getManager()->oStorage->getEvent($sUserPublicId, $oEvent->IdCalendar, $oEvent->Id);
+                    if ($aEventData !== false) {
+                        if (isset($aEventData['vcal'])) {
+                            $oVCalOld = $aEventData['vcal'];
+                            foreach ($oVCalOld->VEVENT as $key => $val) {
+                                if ($val->VALARM) {
+                                    unset($oVCalOld->VEVENT[$key]->VALARM);
+                                }
+                                unset($oVCalOld->VEVENT[$key]->{'LAST-MODIFIED'});
+                                unset($oVCalOld->VEVENT[$key]->SEQUENCE);
+                            }
+                            $sBodyOld = $oVCalOld->serialize();
+
+                            $oVCalNew = clone $oVCal;
+                            foreach ($oVCalNew->VEVENT as $key => $val) {
+                                if ($val->VALARM) {
+                                    unset($oVCalNew->VEVENT[$key]->VALARM);
+                                }
+                                unset($oVCalNew->VEVENT[$key]->{'LAST-MODIFIED'});
+                                unset($oVCalNew->VEVENT[$key]->SEQUENCE);
+                            }
+                            $sBodyNew = $oVCalNew->serialize();
+
+                            $isSendAppointmentMessage = $sBodyOld !== $sBodyNew;
+                        }
+                    }
+
+                    if ($isSendAppointmentMessage) {
+                        \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sAttendee, (string)$oVEvent->SUMMARY, $oVCalResult, (string)$oVCalResult->METHOD, $sHtml);
+                    }
                     unset($oVCal->METHOD);
                 }
             }
@@ -409,10 +443,11 @@ class Module extends \Aurora\System\Module\AbstractModule
                         foreach ($oVEvent->ATTENDEE as $oAttendee) {
                             $sEmail = str_replace('mailto:', '', strtolower((string)$oAttendee));
 
-                            $oVCal->METHOD = 'CANCEL';
+                            $oVCalResult = clone $oVCal;
+                            $oVCalResult->METHOD = 'CANCEL';
                             $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
-
-                            \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCal->serialize(), 'REQUEST');
+                            
+                            \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCalResult, 'REQUEST');
                             unset($oVCal->METHOD);
                         }
                     }

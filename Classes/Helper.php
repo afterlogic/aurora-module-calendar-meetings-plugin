@@ -25,7 +25,7 @@ class Helper
      * @param string $sUserPublicId
      * @param string $sTo
      * @param string $sSubject
-     * @param string $sBody
+     * @param \Sabre\VObject\Component\VCalendar $oVCal
      * @param string $sMethod
      * @param string $sHtmlBody Default value is empty string.
      *
@@ -33,8 +33,16 @@ class Helper
      *
      * @return \MailSo\Mime\Message
      */
-    public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody='', $oAccount = null, $sFromEmail = null)
+    public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $oVCal, $sMethod, $sHtmlBody='', $oAccount = null, $sFromEmail = null)
     {
+        // remove VALARM from invitation mail messages
+        foreach ($oVCal->VEVENT as $key => $val) {
+            if ($val->VALARM) {
+                unset($oVCal->VEVENT[$key]->VALARM);
+            }
+        }
+        $sBody = $oVCal->serialize();
+
         $oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromEmail);
         $oUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
         if ($oUser instanceof \Aurora\Modules\Core\Models\User) {
