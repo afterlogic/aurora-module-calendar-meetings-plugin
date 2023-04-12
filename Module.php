@@ -7,6 +7,8 @@
 
 namespace Aurora\Modules\CalendarMeetingsPlugin;
 
+use Aurora\Modules\Core\Module as CoreModule;
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
@@ -136,9 +138,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         if (isset($aInviteValues['organizer'])) {
             $sOrganizerPublicId = $aInviteValues['organizer'];
-            $oOrganizerUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sOrganizerPublicId);
-            if (isset($sOrganizerPublicId, $aInviteValues['attendee'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $aInviteValues['action'])) {
+            $oOrganizerUser = CoreModule::Decorator()->GetUserByPublicId($sOrganizerPublicId);
+            if ($sOrganizerPublicId && isset($aInviteValues['attendee'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $aInviteValues['action'])) {
                 $oCalendar = $this->getManager()->getCalendar($sOrganizerPublicId, $aInviteValues['calendarId']);
+                $sAction = '';
                 if ($oCalendar) {
                     $oEvent = $this->getManager()->getEvent($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId']);
                     if ($oEvent && is_array($oEvent) && 0 < count($oEvent) && isset($oEvent[0])) {
@@ -151,9 +154,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                             $dt->setTimestamp($oEvent[0]['startTS']);
                             if (!$oEvent[0]['allDay']) {
                                 $sDefaultTimeZone = new \DateTimeZone($oOrganizerUser->DefaultTimeZone);
-                                if (!empty($sDefaultTimeZone)) {
-                                    $dt->setTimezone($sDefaultTimeZone);
-                                }
+                                $dt->setTimezone($sDefaultTimeZone);
                             }
 
                             $sAction = $aInviteValues['action'];
@@ -238,7 +239,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $oVCal = $oEvent['vcal'];
                         $oVCal->METHOD = 'REQUEST';
                         $sData = $oVCal->serialize();
-                        $oAttendeeUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sAttendee);
+                        $oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
                         if ($oAttendeeUser) {
                             $sOrganizerPublicId = null;
                         }
@@ -276,7 +277,9 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onPopulateVCalendar(&$aData, &$oVEvent)
     {
         $sUserPublicId = $aData['sUserPublicId'];
+        /** @var \Sabre\VObject\Component\VEvent $oVEvent */
         $oEvent = $aData['oEvent'];
+        /** @var \Sabre\VObject\Component\VCalendar $oVCal */
         $oVCal = &$aData['oVCal'];
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
 
@@ -325,7 +328,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $aAttendees[] = $sAttendee;
                     }
                 } else {
-                    if (!isset($oPartstat) || (isset($oPartstat) && (string)$oPartstat != 'DECLINED')) {
+                    if (!($oPartstat) || ($oPartstat && (string)$oPartstat != 'DECLINED')) {
                         $oVCalResult = clone $oVCal;
                         $oVCalResult->METHOD = 'CANCEL';
                         $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
@@ -362,10 +365,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                 if (($sAttendee !==  $oUser->PublicId) &&
                     (!isset($oAttendee['PARTSTAT']) || (isset($oAttendee['PARTSTAT']) && (string)$oAttendee['PARTSTAT'] !== 'DECLINED'))) {
+                    /* @phpstan-ignore-next-line */
                     $sStartDateFormat = $oVEvent->DTSTART->hasTime() ? 'D, F d, o, H:i' : 'D, F d, o';
                     $sStartDate = \Aurora\Modules\Calendar\Classes\Helper::getStrDate($oVEvent->DTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
 
-                    $oCalendar = \Aurora\System\Api::GetModule('Calendar')->GetCalendar($oUser->Id, $oEvent->IdCalendar);
+                    $oCalendar = \Aurora\Modules\Calendar\Module::getInstance()->GetCalendar($oUser->Id, $oEvent->IdCalendar);
 
                     $sHtml = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::createHtmlFromEvent($oEvent->IdCalendar, $oEvent->Id, $oUser->PublicId, $sAttendee, $oCalendar->DisplayName, $sStartDate, $oEvent->Location, $oEvent->Description);
 
@@ -414,9 +418,10 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onDeleteEvent($aData, &$oVCal)
     {
         $sUserPublicId = $aData['sUserPublicId'];
-
+        /** @var \Sabre\VObject\Component\VCalendar $oVCal */
         $iIndex = \Aurora\Modules\Calendar\Classes\Helper::getBaseVComponentIndex($oVCal->VEVENT);
         if ($iIndex !== false) {
+            /** @var \Sabre\VObject\Component\VEvent $oVEvent */
             $oVEvent = $oVCal->VEVENT[$iIndex];
 
             $sOrganizer = (isset($oVEvent->ORGANIZER)) ?
@@ -433,6 +438,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             if (isset($sOrganizer)) {
                 if ($sOrganizer === $sUserPublicId) {
                     $oDateTimeNow = new \DateTimeImmutable("now");
+                    /* @phpstan-ignore-next-line */
                     $oDateTimeEvent = $oVEvent->DTSTART->getDateTime();
                     $oDateTimeRepeat = \Aurora\Modules\Calendar\Classes\Helper::getNextRepeat($oDateTimeNow, $oVEvent);
                     $bRrule = isset($oVEvent->RRULE);
@@ -475,6 +481,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $mFromEmail = $aData['mFromEmail'];
 
         $sType = $sMethod;
+        $oCurrentAttendee = null;
         if (isset($oVEvent->ATTENDEE) && $sequenceServer >= $sequence) {
             foreach ($oVEvent->ATTENDEE as $oAttendee) {
                 if ($mFromEmail && $mFromEmail === str_replace('mailto:', '', strtolower((string) $oAttendee->getValue()))) {
@@ -482,12 +489,13 @@ class Module extends \Aurora\System\Module\AbstractModule
                     break;
                 }
             }
-            if (isset($oVEventResult->ATTENDEE)) {
+            if (isset($oVEventResult->ATTENDEE, $oCurrentAttendee)) {
                 foreach ($oVEventResult->ATTENDEE as &$oAttendeeResult) {
-                    if ($oAttendeeResult->getValue() === $oAttendee->getValue()) {
+                    if ($oAttendeeResult->getValue() === $oCurrentAttendee->getValue()) {
                         if (isset($oCurrentAttendee['PARTSTAT'])) {
                             $oAttendeeResult['PARTSTAT'] = $oCurrentAttendee['PARTSTAT']->getValue();
                             $sType = $sType . '-' . (string) $oAttendeeResult['PARTSTAT'];
+                            /* @phpstan-ignore-next-line */
                             $oRespondedAt = $oVEvent->{'LAST-MODIFIED'}->getDateTime();
                             $oRespondedAt->setTimezone(new \DateTimeZone('UTC'));
                             $oAttendeeResult['RESPONDED-AT'] = gmdate("Ymd\THis\Z", $oRespondedAt->getTimestamp());

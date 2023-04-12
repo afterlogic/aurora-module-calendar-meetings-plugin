@@ -10,6 +10,7 @@ namespace Aurora\Modules\CalendarMeetingsPlugin;
 use Aurora\Modules\Core\Models\User;
 use Aurora\Modules\Mail\Models\MailAccount;
 use Aurora\System\Api;
+use Aurora\Modules\Core\Module as CoreModule;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -68,12 +69,12 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $oDefaultUser = null;
         $bDefaultAccountAsEmail = false;
 
-        if (isset($sUserPublicId)) {
+        if ($sUserPublicId) {
             $bDefaultAccountAsEmail = false;
-            $oUser = Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
+            $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
             $oDefaultUser = $oUser;
         } else {
-            $oAttendeeUser = Api::GetModuleDecorator('Core')->GetUserByPublicId($sAttendee);
+            $oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
             if ($oAttendeeUser instanceof User) {
                 $bDefaultAccountAsEmail = false;
                 $oDefaultUser = $oAttendeeUser;
@@ -84,6 +85,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $oFromAccount = null;
         if ($oDefaultUser && $oDefaultUser->PublicId !== $sAttendee) {
             $oMailModule = Api::GetModule('Mail');
+            /** @var \Aurora\Modules\Mail\Module $oMailModule */
             if ($oMailModule) {
                 $aAccounts = $oMailModule->getAccountsManager()->getUserAccounts($oDefaultUser->Id);
                 foreach ($aAccounts as $oAccount) {
@@ -107,6 +109,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             if (isset($oVCal->VEVENT) && count($oVCal->VEVENT) > 0) {
                 foreach ($oVCal->VEVENT as $oVEvent) {
                     $sEventId = (string)$oVEvent->UID;
+                    $bFoundAteendee = false;
                     if (isset($oVEvent->SUMMARY)) {
                         $sSummary = (string)$oVEvent->SUMMARY;
                     }
@@ -132,7 +135,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         }
 
                         $sCN = '';
-                        if (isset($oDefaultUser) && $sAttendee ===  $oDefaultUser->PublicId) {
+                        if ($oDefaultUser && $sAttendee ===  $oDefaultUser->PublicId) {
                             $sCN = !empty($oDefaultUser->Name) ? $oDefaultUser->Name : $sAttendee;
                         }
 
@@ -169,7 +172,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
                 if ($sCalendarId !== false && $bExternal === false && !$bDefaultAccountAsEmail) {
                     unset($oVCal->METHOD);
-                    if (isset($oDefaultUser)) {
+                    if ($oDefaultUser) {
                         if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL') {
                             $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
                         } else {
@@ -188,7 +191,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(
                             \Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer
                         );
-                    } elseif (isset($oDefaultUser) && $oDefaultUser instanceof User) {
+                    } elseif ($oDefaultUser instanceof User) {
                         $bResult = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage(
                             $oDefaultUser->PublicId,
                             $sTo,

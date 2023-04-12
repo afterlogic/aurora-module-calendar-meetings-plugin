@@ -8,6 +8,7 @@
 namespace Aurora\Modules\CalendarMeetingsPlugin\Classes;
 
 use Aurora\Modules\Mail\Module as MailModule;
+use Aurora\Modules\Core\Module as CoreModule;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -44,7 +45,7 @@ class Helper
         $sBody = $oVCal->serialize();
 
         $oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromEmail);
-        $oUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
+        $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
         if ($oUser instanceof \Aurora\Modules\Core\Models\User) {
             $oAccount = $oAccount ? $oAccount : MailModule::getInstance()->getAccountsManager()->getAccountUsedToAuthorize($oUser->PublicId);
             if ($oMessage && $oAccount instanceof \Aurora\Modules\Mail\Models\MailAccount) {
@@ -92,7 +93,7 @@ class Helper
     public static function buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod = null, $sHtmlBody = '', $oAccount = null, $sFromEmail = null)
     {
         $oMessage = null;
-        $oUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
+        $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
         if (isset($sFromEmail)) {
             $sFrom = $sFromEmail;
         } else {
@@ -137,11 +138,14 @@ class Helper
     }
 
     /**
-     * @param \Aurora\Modules\Calendar\Classes\Event $oEvent
+     * @param string $calendarId
+     * @param string $eventId
      * @param string $sAccountEmail
      * @param string $sAttendee
      * @param string $sCalendarName
      * @param string $sStartDate
+     * @param string $location
+     * @param string $description
      *
      * @return string
      */
@@ -200,7 +204,7 @@ class Helper
     public static function sendSelfNotificationMessage($sUserPublicId, $sTo, $sSubject, $sHtmlBody)
     {
         $oMessage = self::buildSelfNotificationMessage($sUserPublicId, $sTo, $sSubject, $sHtmlBody);
-        $oUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
+        $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
         if ($oUser instanceof \Aurora\Modules\Core\Models\User) {
             $oAccount = MailModule::getInstance()->getAccountsManager()->getAccountUsedToAuthorize($oUser->PublicId);
             if ($oMessage && $oAccount instanceof \Aurora\Modules\Mail\Models\MailAccount) {
@@ -234,7 +238,7 @@ class Helper
     public static function buildSelfNotificationMessage($sUserPublicId, $sTo, $sSubject, $sHtmlBody)
     {
         $oMessage = null;
-        $oUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
+        $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
         if ($oUser instanceof \Aurora\Modules\Core\Models\User && !empty($sTo) && !empty($sHtmlBody)) {
             $oMessage = \MailSo\Mime\Message::NewInstance();
             $oMessage->RegenerateMessageId();
