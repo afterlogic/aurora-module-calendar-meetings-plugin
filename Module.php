@@ -23,6 +23,15 @@ class Module extends \Aurora\System\Module\AbstractModule
     //	public $oApiCalendarDecorator = null;
     //	public $oApiUsersManager = null;
 
+    /**
+     *
+     * @return Module
+     */
+    public static function Decorator()
+    {
+        return parent::Decorator();
+    }
+
     public function getManager()
     {
         if ($this->oManager === null) {
@@ -452,7 +461,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                             $oVCalResult = clone $oVCal;
                             $oVCalResult->METHOD = 'CANCEL';
                             $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
-                            
+
                             \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCalResult, 'REQUEST');
                             unset($oVCal->METHOD);
                         }
