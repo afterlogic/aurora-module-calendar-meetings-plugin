@@ -104,8 +104,12 @@ class Helper
             $oMessage->RegenerateMessageId();
             $oMessage->DoesNotCreateEmptyTextPart();
 
-            $oMailModule = \Aurora\System\Api::GetModule('Mail');
-            $sXMailer = $oMailModule ? $oMailModule->getConfig('XMailerValue', '') : '';
+            $sXMailer = '';
+            if (class_exists('\Aurora\Modules\Mail\Module')) {
+                $oMailModule = \Aurora\Modules\Mail\Module::getInstance();
+                $sXMailer = $oMailModule->oModuleSettings->XMailerValue;
+            }
+
             if (0 < strlen($sXMailer)) {
                 $oMessage->SetXMailer($sXMailer);
             }
@@ -244,8 +248,12 @@ class Helper
             $oMessage->RegenerateMessageId();
             $oMessage->DoesNotCreateEmptyTextPart();
 
-            $oMailModule = \Aurora\System\Api::GetModule('Mail');
-            $sXMailer = $oMailModule ? $oMailModule->getConfig('XMailerValue', '') : '';
+            $sXMailer = '';
+            if (class_exists('\Aurora\Modules\Mail\Module')) {
+                $oMailModule = \Aurora\Modules\Mail\Module::getInstance();
+                $sXMailer = $oMailModule->oModuleSettings->XMailerValue;
+            }
+
             if (0 < strlen($sXMailer)) {
                 $oMessage->SetXMailer($sXMailer);
             }
