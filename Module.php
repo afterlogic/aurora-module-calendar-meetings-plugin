@@ -458,6 +458,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 			if (isset($oVEventResult->ATTENDEE)) {
 				foreach($oVEventResult->ATTENDEE as $oAttendee) {
+
+					
 					$sAttendee = str_replace('mailto:', '', strtolower((string)$oAttendee));
 
 					if (($sAttendee !==  $oUser->PublicId) &&
@@ -512,17 +514,18 @@ class Module extends \Aurora\System\Module\AbstractModule
 							$oVEventAteendeeResult = $oVEventResult->ATTENDEE;
 							unset($oVEventResult->ATTENDEE);
 							foreach ($oVEventAteendeeResult as $oAttendeeResult) {
+								
 								$sAttendeeResult = str_replace('mailto:', '', strtolower((string)$oAttendeeResult));
 								if (!MeetingsHelper::isEmailExternal($sAttendeeResult)) {
 									$sDomainNameForReplacementInInvitations = $this->getConfig('DomainNameForReplacementInInvitations', '');
 									if (!empty($sDomainNameForReplacementInInvitations)) {
-										$sDomainNameForReplacementInInvitations = '@' . $sDomainNameForReplacementInInvitations;
+										$oAttendeeResult->setValue('mailto:' . \MailSo\Base\Utils::GetAccountNameFromEmail($sAttendeeResult) . '@' . $sDomainNameForReplacementInInvitations);
 									}
-									$oAttendeeResult->setValue('mailto:' . \MailSo\Base\Utils::GetAccountNameFromEmail($sAttendeeResult) . $sDomainNameForReplacementInInvitations);
 									if (isset($oAttendeeResult['CN'])) {
 										$oAttendeeResult['CN'] = \MailSo\Base\Utils::GetAccountNameFromEmail($oAttendeeResult['CN']);
 									}
 								}
+
 								$oVEventResult->add($oAttendeeResult);
 							}
 						}
