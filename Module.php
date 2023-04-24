@@ -453,24 +453,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 				unset($oVEvent->ORGANIZER);
 			}
 
-			$oVCalResult = clone $oVCal;
-			$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
-
-			if (isset($oVEventResult->ATTENDEE)) {
-				foreach($oVEventResult->ATTENDEE as $oAttendee) {
-
-					
+			if (isset($oVEvent->ATTENDEE)) {
+				foreach($oVEvent->ATTENDEE as $oAttendee) {							
 					$sAttendee = str_replace('mailto:', '', strtolower((string)$oAttendee));
 
 					if (($sAttendee !==  $oUser->PublicId) &&
 						(!isset($oAttendee['PARTSTAT']) || 
 						(isset($oAttendee['PARTSTAT']) && (string)$oAttendee['PARTSTAT'] !== 'DECLINED'))) {
 						
-						$sStartDateFormat = $oVEventResult->DTSTART->hasTime() ? 'D, d. F, o, H:i' : 'D, d. F, o';
-						$sStartDate = Helper::getStrDate($oVEventResult->DTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
-						$sStartDate .= $oVEventResult->DTSTART->hasTime() ? ' Uhr' : '';
+						$sStartDateFormat = $oVEvent->DTSTART->hasTime() ? 'D, d. F, o, H:i' : 'D, d. F, o';
+						$sStartDate = Helper::getStrDate($oVEvent->DTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
+						$sStartDate .= $oVEvent->DTSTART->hasTime() ? ' Uhr' : '';
 
-						$sStartWeek = Helper::getStrDate($oVEventResult->DTSTART, $oUser->DefaultTimeZone, 'W');
+						$sStartWeek = Helper::getStrDate($oVEvent->DTSTART, $oUser->DefaultTimeZone, 'W');
 						$sStartDate .= ' ('.$this->i18N('WEEK_SHORT').$sStartWeek.')';
 
 						$oCalendar =  Api::GetModule('Calendar')->GetCalendar($sUserPublicId, $oEvent->IdCalendar);
@@ -478,9 +473,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 						if (!isset($sHtml)) {
 							$sHtml = MeetingsHelper::createHtmlFromEvent(
 								$oEvent->IdCalendar, 
-								$oVEventResult->Id, 
-								$oVEventResult->Location, 
-								$oVEventResult->Description, 
+								$oVEvent->Id, 
+								$oVEvent->Location, 
+								$oVEvent->Description, 
 								$oUser->PublicId, 
 								$sAttendee, 
 								$oCalendar->DisplayName, 
@@ -491,7 +486,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 								'attendee' => $sAttendee,
 								'organizer' => $oUser->PublicId,
 								'calendarId' => $oEvent->IdCalendar,
-								'eventId' => $oVEventResult->Id
+								'eventId' => $oVEvent->Id
 							);
 							$sHref = MeetingsHelper::getDomainForInvitation($sAttendee) . '/?invite=';
 					
@@ -509,6 +504,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 								'{{HrefDecline}}'	=> $sHref . $sEncodedValueDecline
 							));
 						}
+
+						$oVCalResult = clone $oVCal;
+						$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
 
 						if (MeetingsHelper::isEmailExternal($sAttendee)) {
 							$oVEventAteendeeResult = $oVEventResult->ATTENDEE;
