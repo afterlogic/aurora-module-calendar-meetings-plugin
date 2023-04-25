@@ -377,47 +377,47 @@ class Helper
 		return $sResult;
 	}
 
-	public static function createSelfNotificationHtmlBody($sAction, $aEvent, $sEmail, $sCalendarName, $sStartDate)
-	{
-		$sHtml = '';
-		$sActionName = self::getSelfNotificationActionName($sAction);
-		$oCalendarMeetingsModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
-		if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule)
-		{
-			$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventSelfNotification.html');
+	// public static function createSelfNotificationHtmlBody($sAction, $aEvent, $sEmail, $sCalendarName, $sStartDate)
+	// {
+	// 	$sHtml = '';
+	// 	$sActionName = self::getSelfNotificationActionName($sAction);
+	// 	$oCalendarMeetingsModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
+	// 	if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule)
+	// 	{
+	// 		$sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventSelfNotification.html');
 
-			if (empty((string) $aEvent['location'])) {
-				$sLocationBlock = '';
-			} else {
-				$sLocationBlock = strtr(self::$sLocationBlock, [
-					'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
-					'{{EventLocation}}' => (string) $aEvent['location']
-				]);
-			}
+	// 		if (empty((string) $aEvent['location'])) {
+	// 			$sLocationBlock = '';
+	// 		} else {
+	// 			$sLocationBlock = strtr(self::$sLocationBlock, [
+	// 				'{{LOCATION}}' => $oCalendarMeetingsModule->I18N('LOCATION'),
+	// 				'{{EventLocation}}' => (string) $aEvent['location']
+	// 			]);
+	// 		}
 
-			if (empty((string) $aEvent['description'])) {
-				$sDescriptionBlock = '';
-			} else {
-				$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
-					'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
-					'{{EventDescription}}' => (string) $aEvent['description']
-				]);
-			}
+	// 		if (empty((string) $aEvent['description'])) {
+	// 			$sDescriptionBlock = '';
+	// 		} else {
+	// 			$sDescriptionBlock = strtr(self::$sDescriptionBlock, [
+	// 				'{{DESCRIPTION}}' => $oCalendarMeetingsModule->I18N('DESCRIPTION'),
+	// 				'{{EventDescription}}' => (string) $aEvent['description']
+	// 			]);
+	// 		}
 
-			$sHtml = strtr($sHtml, [
-				'{{WHEN}}'				=> $oCalendarMeetingsModule->I18N('WHEN'),
-				'{{INFORMATION}}'		=> $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sEmail]),
-				'{{REACTION}}'			=> $oCalendarMeetingsModule->i18N('USER_REACTION'),
-				'{{Calendar}}'			=> $sCalendarName.' '.$sEmail,
-				'{{LocationBlock}}'		=> $sLocationBlock,
-				'{{Start}}'				=> $sStartDate,
-				'{{DescriptionBlock}}'	=> $sDescriptionBlock,
-				'{{Reaction}}'			=> $sActionName
-			]);
-		}
+	// 		$sHtml = strtr($sHtml, [
+	// 			'{{WHEN}}'				=> $oCalendarMeetingsModule->I18N('WHEN'),
+	// 			'{{INFORMATION}}'		=> $oCalendarMeetingsModule->i18N('INFORMATION', array('Email' => $sEmail)),
+	// 			'{{REACTION}}'			=> $oCalendarMeetingsModule->i18N('USER_REACTION'),
+	// 			'{{Calendar}}'			=> $sCalendarName.' '.$sEmail,
+	// 			'{{LocationBlock}}'		=> $sLocationBlock,
+	// 			'{{Start}}'				=> $sStartDate,
+	// 			'{{DescriptionBlock}}'	=> $sDescriptionBlock,
+	// 			'{{Reaction}}'			=> $sActionName
+	// 		]);
+	// 	}
 
-		return $sHtml;
-	}
+	// 	return $sHtml;
+	// }
 
 	public static function getSelfNotificationActionName($sAction)
 	{

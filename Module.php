@@ -470,40 +470,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 						$oCalendar =  Api::GetModule('Calendar')->GetCalendar($sUserPublicId, $oEvent->IdCalendar);
 
-						if (!isset($sHtml)) {
-							$sHtml = MeetingsHelper::createHtmlFromEvent(
-								$oEvent->IdCalendar, 
-								$oVEvent->Id, 
-								$oVEvent->Location, 
-								$oVEvent->Description, 
-								$oUser->PublicId, 
-								$sAttendee, 
-								$oCalendar->DisplayName, 
-								$sStartDate
-							);
-						} else {
-							$aValues = array(
-								'attendee' => $sAttendee,
-								'organizer' => $oUser->PublicId,
-								'calendarId' => $oEvent->IdCalendar,
-								'eventId' => $oVEvent->Id
-							);
-							$sHref = MeetingsHelper::getDomainForInvitation($sAttendee) . '/?invite=';
-					
-							$aValues['action'] = 'ACCEPTED';
-							$sEncodedValueAccept = \Aurora\System\Api::EncodeKeyValues($aValues);
-							$aValues['action'] = 'TENTATIVE';
-							$sEncodedValueTentative = \Aurora\System\Api::EncodeKeyValues($aValues);
-							$aValues['action'] = 'DECLINED';
-							$sEncodedValueDecline = \Aurora\System\Api::EncodeKeyValues($aValues);
-					
-							$sHtml = strtr($sHtml, array(
-								'{{Attendee}}'		=> $sAttendee,
-								'{{HrefAccept}}'	=> $sHref . $sEncodedValueAccept,
-								'{{HrefTentative}}'	=> $sHref . $sEncodedValueTentative,
-								'{{HrefDecline}}'	=> $sHref . $sEncodedValueDecline
-							));
-						}
+						$sHtml = MeetingsHelper::createHtmlFromEvent(
+							$oEvent->IdCalendar, 
+							$oVEvent->Id, 
+							$oVEvent->Location, 
+							$oVEvent->Description, 
+							$oUser->PublicId, 
+							$sAttendee, 
+							$oCalendar->DisplayName, 
+							$sStartDate
+						);
 
 						$oVCalResult = clone $oVCal;
 						$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
