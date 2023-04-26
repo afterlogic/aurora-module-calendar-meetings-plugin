@@ -470,16 +470,40 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 						$oCalendar =  Api::GetModule('Calendar')->GetCalendar($sUserPublicId, $oEvent->IdCalendar);
 
-						$sHtml = MeetingsHelper::createHtmlFromEvent(
-							$oEvent->IdCalendar, 
-							$oVEvent->Id, 
-							$oVEvent->Location, 
-							$oVEvent->Description, 
-							$oUser->PublicId, 
-							$sAttendee, 
-							$oCalendar->DisplayName, 
-							$sStartDate
-						);
+						if (!isset($sHtml)) {
+							$sFinalHtml = MeetingsHelper::createHtmlFromEvent(
+								$oEvent->IdCalendar, 
+								$oVEvent->Id, 
+								$oVEvent->Location, 
+								$oVEvent->Description, 
+								$oUser->PublicId, 
+								$sAttendee, 
+								$oCalendar->DisplayName, 
+								$sStartDate
+							);
+						} else {
+							$aValues = array(
+								'attendee' => $sAttendee,
+								'organizer' => $oUser->PublicId,
+								'calendarId' => $oEvent->IdCalendar,
+								'eventId' => $oVEvent->Id
+							);
+							$sHref = MeetingsHelper::getDomainForInvitation($sAttendee) . '/?invite=';
+					
+							$aValues['action'] = 'ACCEPTED';
+							$sEncodedValueAccept = \Aurora\System\Api::EncodeKeyValues($aValues);
+							$aValues['action'] = 'TENTATIVE';
+							$sEncodedValueTentative = \Aurora\System\Api::EncodeKeyValues($aValues);
+							$aValues['action'] = 'DECLINED';
+							$sEncodedValueDecline = \Aurora\System\Api::EncodeKeyValues($aValues);
+					
+							$sFinalHtml = strtr($sHtml, array(
+								'{{Attendee}}'		=> $sAttendee,
+								'{{HrefAccept}}'	=> $sHref . $sEncodedValueAccept,
+								'{{HrefTentative}}'	=> $sHref . $sEncodedValueTentative,
+								'{{HrefDecline}}'	=> $sHref . $sEncodedValueDecline
+							));
+						}
 
 						$oVCalResult = clone $oVCal;
 						$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
@@ -512,7 +536,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 							(string) $oVEventResult->SUMMARY, 
 							$oVCalResult->serialize(), 
 							(string) $oVCalResult->METHOD, 
-							$sHtml
+							$sFinalHtml
 						);
 					}
 				}
