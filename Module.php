@@ -530,6 +530,42 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 						$oVCalResult->METHOD = 'REQUEST';
 
+
+						$sFriendlyName = '';
+						$MailModule = Api::GetModule('Mail');
+						if ($MailModule) {
+							$oMainAccount = $MailModule->getAccountsManager()->getAccountByEmail($sUserPublicId, $oUser->Id);
+							if ($oMainAccount && !empty($oMainAccount->FriendlyName)) {
+								$sFriendlyName = $oMainAccount->FriendlyName;
+							}
+						}
+
+						$sOrganizerEmail = $sUserPublicId;
+						$InformatikProjectsModule = Api::GetModule('InformatikProjects');
+						if ($InformatikProjectsModule) {
+							$senderForExternalRecipients = $InformatikProjectsModule->getConfig('SenderForExternalRecipients');
+							$oToEmail = \MailSo\Mime\Email::Parse($sAttendee);
+							if (!empty($senderForExternalRecipients) && Classes\Helper::isEmailExternal($oToEmail->GetEmail())) {
+								$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
+								$sFromEmail = $oEmail->GetEmail();
+								$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserByPublicId($sFromEmail);
+								if ($oUser) {
+									$MailModule = Api::GetModule('Mail');
+									if ($MailModule) {
+										$oFromAccount = $MailModule->getAccountsManager()->getAccountByEmail($sFromEmail, $oUser->Id);
+										if ($oFromAccount) {
+											$sOrganizerEmail = $oFromAccount->Email;
+										}
+									}
+								}
+							}
+						}
+
+						$oVEventResult->ORGANIZER = $sOrganizerEmail;
+						if (!empty($sFriendlyName)) {
+							$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
+						}
+
 						MeetingsHelper::sendAppointmentMessage(
 							$sUserPublicId, 
 							$sAttendee, 
@@ -612,32 +648,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$sequence = $aData['sequence'];
 		$sequenceServer = $aData['sequenceServer'];
 		$oVEvent = $aData['oVEvent'];
-		$mFromEmail = $aData['mFromEmail'];
 
-		if (isset($oVEvent->ATTENDEE) && $sequenceServer >= $sequence)
-		{
-			foreach ($oVEvent->ATTENDEE as $oAttendee)
-			{
-				if ($mFromEmail && $mFromEmail === str_replace('mailto:', '', strtolower((string) $oAttendee->getValue())))
-				{
-					$oCurrentAttendee = $oAttendee;
-					break;
-				}
-			}
-			if (isset($oVEventResult->ATTENDEE))
-			{
-				foreach ($oVEventResult->ATTENDEE as &$oAttendeeResult)
-				{
-					if ($oAttendeeResult->getValue() === $oAttendee->getValue())
-					{
-						if (isset($oCurrentAttendee['PARTSTAT']))
-						{
-							$oAttendeeResult['PARTSTAT'] = $oCurrentAttendee['PARTSTAT']->getValue();
-							$oRespondedAt = $oVEvent->{'LAST-MODIFIED'}->getDateTime();
-							$oRespondedAt->setTimezone(new \DateTimeZone('UTC'));
-							$oAttendeeResult['RESPONDED-AT'] = gmdate("Ymd\THis\Z", $oRespondedAt->getTimestamp());
+		if (isset($oVEvent->ATTENDEE) && $sequenceServer >= $sequence) {
+			foreach ($oVEvent->ATTENDEE as $oAttendee) {
+				if (isset($oVEventResult->ATTENDEE)) {
+					foreach ($oVEventResult->ATTENDEE as &$oAttendeeResult) {
+						if ($oAttendeeResult->getValue() === $oAttendee->getValue()) {
+							if (isset($oAttendee['PARTSTAT'])) {
+								$oAttendeeResult['PARTSTAT'] = $oAttendee['PARTSTAT']->getValue();
+								$oRespondedAt = $oVEvent->{'LAST-MODIFIED'}->getDateTime();
+								$oRespondedAt->setTimezone(new \DateTimeZone('UTC'));
+								$oAttendeeResult['RESPONDED-AT'] = gmdate("Ymd\THis\Z", $oRespondedAt->getTimestamp());
+							}
+							break;
 						}
-						break;
 					}
 				}
 			}
