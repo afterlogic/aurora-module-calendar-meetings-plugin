@@ -58,6 +58,14 @@ class Helper
 					if (!empty($senderForExternalRecipients) && self::isEmailExternal($oToEmail->GetEmail())) {
 						$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
 						$sFromEmail = $oEmail->GetEmail();
+
+						// adding user account friendly name to cenral account
+						$sFromFullEmail = $sFromEmail;
+						if (!empty($oAccount->FriendlyName)) {
+							$sFromFullEmail = \MailSo\Mime\Email::NewInstance($sFromEmail, $oAccount->FriendlyName)->ToString();
+						}
+
+						// getting account object that will be used as a sender
 						$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserByPublicId($sFromEmail);
 						if ($oUser) {
 							$MailModule = Api::GetModule('Mail');
@@ -68,7 +76,7 @@ class Helper
 					}
 				}
 
-				$oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromEmail);
+				$oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromFullEmail);
 
 				\Aurora\System\Api::Log('IcsAppointmentActionSendOriginalMailMessage');
 				return \Aurora\System\Api::GetModule('Mail')->getMailManager()->sendMessage($oAccount, $oMessage, null, '', '', '', [], $oFromAccount);
