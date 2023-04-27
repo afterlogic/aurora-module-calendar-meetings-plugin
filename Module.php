@@ -391,9 +391,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                 if (($sAttendee !==  $oUser->PublicId) &&
                     (!isset($oAttendee['PARTSTAT']) || (isset($oAttendee['PARTSTAT']) && (string)$oAttendee['PARTSTAT'] !== 'DECLINED'))) {
-                    /* @phpstan-ignore-next-line */
-                    $sStartDateFormat = $oVEvent->DTSTART->hasTime() ? 'D, F d, o, H:i' : 'D, F d, o';
-                    $sStartDate = \Aurora\Modules\Calendar\Classes\Helper::getStrDate($oVEvent->DTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
+                    /** @var \Sabre\VObject\Property\ICalendar\DateTime $oDTSTART */
+                    $oDTSTART = $oVEvent->DTSTART;
+                    $sStartDateFormat = $oDTSTART->hasTime() ? 'D, F d, o, H:i' : 'D, F d, o';
+                    $sStartDate = \Aurora\Modules\Calendar\Classes\Helper::getStrDate($oDTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
 
                     $oCalendar = \Aurora\Modules\Calendar\Module::getInstance()->GetCalendar($oUser->Id, $oEvent->IdCalendar);
 
@@ -464,8 +465,9 @@ class Module extends \Aurora\System\Module\AbstractModule
             if (isset($sOrganizer)) {
                 if ($sOrganizer === $sUserPublicId) {
                     $oDateTimeNow = new \DateTimeImmutable("now");
-                    /* @phpstan-ignore-next-line */
-                    $oDateTimeEvent = $oVEvent->DTSTART->getDateTime();
+                    /** @var \Sabre\VObject\Property\ICalendar\DateTime $oDTSTART */
+                    $oDTSTART = $oVEvent->DTSTART;
+                    $oDateTimeEvent = $oDTSTART->getDateTime();
                     $oDateTimeRepeat = \Aurora\Modules\Calendar\Classes\Helper::getNextRepeat($oDateTimeNow, $oVEvent);
                     $bRrule = isset($oVEvent->RRULE);
                     $bEventFore = $oDateTimeEvent ? $oDateTimeEvent > $oDateTimeNow : false;
@@ -503,6 +505,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $sMethod = $aData['sMethod'];
         $sequence = $aData['sequence'];
         $sequenceServer = $aData['sequenceServer'];
+        /** @var \Sabre\VObject\Component\VEvent $oVEvent */
         $oVEvent = $aData['oVEvent'];
         $mFromEmail = $aData['mFromEmail'];
 
@@ -521,8 +524,10 @@ class Module extends \Aurora\System\Module\AbstractModule
                         if (isset($oCurrentAttendee['PARTSTAT'])) {
                             $oAttendeeResult['PARTSTAT'] = $oCurrentAttendee['PARTSTAT']->getValue();
                             $sType = $sType . '-' . (string) $oAttendeeResult['PARTSTAT'];
-                            /* @phpstan-ignore-next-line */
-                            $oRespondedAt = $oVEvent->{'LAST-MODIFIED'}->getDateTime();
+                            /** @var \Sabre\VObject\Property\ICalendar\DateTime $oLAST_MODIFIED */
+                            $oLAST_MODIFIED = $oVEvent->{'LAST-MODIFIED'};
+                            
+                            $oRespondedAt = $oLAST_MODIFIED->getDateTime();
                             $oRespondedAt->setTimezone(new \DateTimeZone('UTC'));
                             $oAttendeeResult['RESPONDED-AT'] = gmdate("Ymd\THis\Z", $oRespondedAt->getTimestamp());
                         }
