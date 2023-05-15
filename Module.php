@@ -8,6 +8,8 @@
 namespace Aurora\Modules\CalendarMeetingsPlugin;
 
 use Aurora\Modules\Core\Module as CoreModule;
+use Aurora\Modules\Calendar\Module as CalendarModule;
+use Aurora\Modules\Calendar\Classes\Helper as CalendarHelper;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -20,7 +22,9 @@ use Aurora\Modules\Core\Module as CoreModule;
  */
 class Module extends \Aurora\System\Module\AbstractModule
 {
+    /** @var Manager */
     protected $oManager = null;
+    
     public $oApiFileCache = null;
     //	public $oApiCalendarDecorator = null;
     //	public $oApiUsersManager = null;
@@ -106,7 +110,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         if (empty($File) || empty($FromEmail)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
-        $sData = $this->getCacheManager()->get($sUserPublicId, $File, '', \Aurora\Modules\Calendar\Module::GetName());
+        $sData = $this->getCacheManager()->get($sUserPublicId, $File, '', CalendarModule::GetName());
         if (!empty($sData)) {
             $mResult = $this->getManager()->processICS($sUserPublicId, $sData, $FromEmail, true);
         }
@@ -139,11 +143,11 @@ class Module extends \Aurora\System\Module\AbstractModule
             $aEventData =  $this->getManager()->getEvent($sUserPublicId, $CalendarId, $EventId);
             if (isset($aEventData) && isset($aEventData['vcal']) && $aEventData['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                 $oVCal = $aEventData['vcal'];
-                $oVCal->METHOD = 'REQUEST';
+//                $oVCal->METHOD = 'REQUEST';
                 $sData = $oVCal->serialize();
             }
         } elseif (!empty($File)) {
-            $sData = $this->getCacheManager()->get($sUserPublicId, $File, '', \Aurora\Modules\Calendar\Module::GetName());
+            $sData = $this->getCacheManager()->get($sUserPublicId, $File, '', CalendarModule::GetName());
         }
         if (!empty($sData)) {
             $mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $sData);
@@ -165,11 +169,15 @@ class Module extends \Aurora\System\Module\AbstractModule
         if (isset($aInviteValues['organizer'])) {
             $sOrganizerPublicId = $aInviteValues['organizer'];
             $oOrganizerUser = CoreModule::Decorator()->GetUserByPublicId($sOrganizerPublicId);
-            if ($sOrganizerPublicId && isset($aInviteValues['attendee'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $aInviteValues['action'])) {
-                $oCalendar = $this->getManager()->getCalendar($sOrganizerPublicId, $aInviteValues['calendarId']);
+            if ($sOrganizerPublicId && isset($aInviteValues['attendee'], $aInviteValues['eventId'], $aInviteValues['action'])) {
+                $calendarId = $aInviteValues['calendarId'];
+                if (empty($calendarId)) {
+                    $calendarId = $this->getManager()->findEventInCalendars($sOrganizerPublicId, $aInviteValues['eventId']);
+                }
+                $oCalendar = $this->getManager()->getCalendar($sOrganizerPublicId, $calendarId);
                 $sAction = '';
                 if ($oCalendar) {
-                    $oEvent = $this->getManager()->getEvent($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId']);
+                    $oEvent = $this->getManager()->getEvent($sOrganizerPublicId, $calendarId, $aInviteValues['eventId']);
                     if ($oEvent && is_array($oEvent) && 0 < count($oEvent) && isset($oEvent[0])) {
                         if (is_string($sResult)) {
                             $oModuleManager = \Aurora\System\Api::GetModuleManager();
@@ -242,14 +250,6 @@ class Module extends \Aurora\System\Module\AbstractModule
                             );
 
                             $sResult = strtr($sResult, $mResult);
-
-                        // $sStartDate = $dt->format($oEvent[0]['allDay'] ? 'D, F d, o' : 'D, F d, o, H:i');
-                        // \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendSelfNotificationMessage(
-                        // 	$aInviteValues['attendee'],
-                        // 	$aInviteValues['attendee'],
-                        // 	\Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::createSelfNotificationSubject($aInviteValues['action'], $oEvent[0]['subject']),
-                        // 	\Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::createSelfNotificationHtmlBody($aInviteValues['action'], $oEvent[0], $aInviteValues['attendee'], $oCalendar->DisplayName, $sStartDate)
-                        // );
                         } else {
                             \Aurora\System\Api::Log('Empty template.', \Aurora\System\Enums\LogLevel::Error);
                         }
@@ -263,13 +263,13 @@ class Module extends \Aurora\System\Module\AbstractModule
                 if (!empty($sAttendee)) {
                     if (isset($oEvent) && isset($oEvent['vcal']) && $oEvent['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                         $oVCal = $oEvent['vcal'];
-                        $oVCal->METHOD = 'REQUEST';
+//                        $oVCal->METHOD = 'REQUEST';
                         $sData = $oVCal->serialize();
                         $oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
                         if ($oAttendeeUser) {
                             $sOrganizerPublicId = null;
                         }
-                        $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $aInviteValues['calendarId'], $sData);
+                        $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData);
                     }
                     // $this->getManager()->updateAppointment($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
                 }
@@ -302,11 +302,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onPopulateVCalendar(&$aData, &$oVEvent)
     {
-        $sUserPublicId = $aData['sUserPublicId'];
         /** @var \Sabre\VObject\Component\VEvent $oVEvent */
-        $oEvent = $aData['oEvent'];
-        /** @var \Sabre\VObject\Component\VCalendar $oVCal */
-        $oVCal = &$aData['oVCal'];
+        $oEvent =& $aData['oEvent'];
+
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
 
         $aAttendees = [];
@@ -319,8 +317,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $sOwnerEmail = \trim(substr($sOwnerEmail, $iPos + 11), '/');
             }
         }
-        //update only own attendees
-//        if (!isset($sOwnerEmail) || isset($sOwnerEmail) && $sOwnerEmail === $sUserPublicId) {
+
         if (isset($oVEvent->ATTENDEE)) {
             $aAttendeeEmails = [];
             foreach ($oEvent->Attendees as $aItem) {
@@ -353,14 +350,6 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $oVEvent->add($oAttendee);
                         $aAttendees[] = $sAttendee;
                     }
-                } else {
-                    if (!($oPartstat) || ($oPartstat && (string)$oPartstat != 'DECLINED')) {
-                        $oVCalResult = clone $oVCal;
-                        $oVCalResult->METHOD = 'CANCEL';
-                        $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
-
-                        \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sAttendee, $sSubject, $oVCalResult, (string)$oVCalResult->METHOD);
-                    }
                 }
             }
         }
@@ -384,69 +373,13 @@ class Module extends \Aurora\System\Module\AbstractModule
         } else {
             unset($oVEvent->ORGANIZER);
         }
-
-        if (isset($oVEvent->ATTENDEE)) {
-            foreach ($oVEvent->ATTENDEE as $oAttendee) {
-                $sAttendee = str_replace('mailto:', '', strtolower((string)$oAttendee));
-
-                if (($sAttendee !==  $oUser->PublicId) &&
-                    (!isset($oAttendee['PARTSTAT']) || (isset($oAttendee['PARTSTAT']) && (string)$oAttendee['PARTSTAT'] !== 'DECLINED'))) {
-                    /** @var \Sabre\VObject\Property\ICalendar\DateTime $oDTSTART */
-                    $oDTSTART = $oVEvent->DTSTART;
-                    $sStartDateFormat = $oDTSTART->hasTime() ? 'D, F d, o, H:i' : 'D, F d, o';
-                    $sStartDate = \Aurora\Modules\Calendar\Classes\Helper::getStrDate($oDTSTART, $oUser->DefaultTimeZone, $sStartDateFormat);
-
-                    $oCalendar = \Aurora\Modules\Calendar\Module::getInstance()->GetCalendar($oUser->Id, $oEvent->IdCalendar);
-
-                    $sHtml = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::createHtmlFromEvent($oEvent->IdCalendar, $oEvent->Id, $oUser->PublicId, $sAttendee, $oCalendar->DisplayName, $sStartDate, $oEvent->Location, $oEvent->Description);
-
-                    $oVCalResult = clone $oVCal;
-                    $oVCalResult->METHOD = 'REQUEST';
-
-                    $isSendAppointmentMessage = true;
-
-                    $aEventData = \Aurora\Modules\Calendar\Module::getInstance()->getManager()->oStorage->getEvent($sUserPublicId, $oEvent->IdCalendar, $oEvent->Id);
-                    if ($aEventData !== false) {
-                        if (isset($aEventData['vcal'])) {
-                            $oVCalOld = $aEventData['vcal'];
-                            foreach ($oVCalOld->VEVENT as $key => $val) {
-                                if ($val->VALARM) {
-                                    unset($oVCalOld->VEVENT[$key]->VALARM);
-                                }
-                                unset($oVCalOld->VEVENT[$key]->{'LAST-MODIFIED'});
-                                unset($oVCalOld->VEVENT[$key]->SEQUENCE);
-                            }
-                            $sBodyOld = $oVCalOld->serialize();
-
-                            $oVCalNew = clone $oVCal;
-                            foreach ($oVCalNew->VEVENT as $key => $val) {
-                                if ($val->VALARM) {
-                                    unset($oVCalNew->VEVENT[$key]->VALARM);
-                                }
-                                unset($oVCalNew->VEVENT[$key]->{'LAST-MODIFIED'});
-                                unset($oVCalNew->VEVENT[$key]->SEQUENCE);
-                            }
-                            $sBodyNew = $oVCalNew->serialize();
-
-                            $isSendAppointmentMessage = $sBodyOld !== $sBodyNew;
-                        }
-                    }
-
-                    if ($isSendAppointmentMessage) {
-                        \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sAttendee, (string)$oVEvent->SUMMARY, $oVCalResult, (string)$oVCalResult->METHOD, $sHtml);
-                    }
-                    unset($oVCal->METHOD);
-                }
-            }
-        }
-//        }
     }
 
     public function onDeleteEvent($aData, &$oVCal)
     {
         $sUserPublicId = $aData['sUserPublicId'];
         /** @var \Sabre\VObject\Component\VCalendar $oVCal */
-        $iIndex = \Aurora\Modules\Calendar\Classes\Helper::getBaseVComponentIndex($oVCal->VEVENT);
+        $iIndex = CalendarHelper::getBaseVComponentIndex($oVCal->VEVENT);
         if ($iIndex !== false) {
             /** @var \Sabre\VObject\Component\VEvent $oVEvent */
             $oVEvent = $oVCal->VEVENT[$iIndex];
@@ -468,7 +401,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                     /** @var \Sabre\VObject\Property\ICalendar\DateTime $oDTSTART */
                     $oDTSTART = $oVEvent->DTSTART;
                     $oDateTimeEvent = $oDTSTART->getDateTime();
-                    $oDateTimeRepeat = \Aurora\Modules\Calendar\Classes\Helper::getNextRepeat($oDateTimeNow, $oVEvent);
+                    $oDateTimeRepeat = CalendarHelper::getNextRepeat($oDateTimeNow, $oVEvent);
                     $bRrule = isset($oVEvent->RRULE);
                     $bEventFore = $oDateTimeEvent ? $oDateTimeEvent > $oDateTimeNow : false;
                     $bNextRepeatFore = $oDateTimeRepeat ? $oDateTimeRepeat > $oDateTimeNow : false;
@@ -481,7 +414,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                             $oVCalResult->METHOD = 'CANCEL';
                             $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
 
-                            \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCalResult, 'REQUEST');
+                            Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCalResult, 'REQUEST');
                             unset($oVCal->METHOD);
                         }
                     }
@@ -542,7 +475,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($mResult) {
             $mResult = $sType;
         }
-        $oVCalResult->METHOD = $sMethod;
+//        $oVCalResult->METHOD = $sMethod;
     }
 
     public function onProcessICSCancel(&$aData, &$mResult)

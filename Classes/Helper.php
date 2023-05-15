@@ -9,6 +9,7 @@ namespace Aurora\Modules\CalendarMeetingsPlugin\Classes;
 
 use Aurora\Modules\Mail\Module as MailModule;
 use Aurora\Modules\Core\Module as CoreModule;
+use Aurora\System\Api;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -153,15 +154,15 @@ class Helper
      *
      * @return string
      */
-    public static function createHtmlFromEvent($calendarId, $eventId, $sAccountEmail, $sAttendee, $sCalendarName, $sStartDate, $location, $description)
+    public static function createHtmlFromEvent($calendarId, $eventId, $sAccountEmail, $sAttendee, $sStartDate, $location, $description)
     {
         $sHtml = '';
-        $aValues = array(
+        $aValues = [
             'attendee' => $sAttendee,
             'organizer' => $sAccountEmail,
             'calendarId' => $calendarId,
             'eventId' => $eventId
-        );
+        ];
 
         $aValues['action'] = 'ACCEPTED';
         $sEncodedValueAccept = \Aurora\System\Api::EncodeKeyValues($aValues);
@@ -170,26 +171,33 @@ class Helper
         $aValues['action'] = 'DECLINED';
         $sEncodedValueDecline = \Aurora\System\Api::EncodeKeyValues($aValues);
 
-        $sHref = rtrim(\MailSo\Base\Http::SingletonInstance()->GetFullUrl(), '\\/ ').'/?invite=';
+        $fullUrl = \MailSo\Base\Http::SingletonInstance()->GetFullUrl();
+
+        /** @var \Aurora\Modules\Dav\Module */
+        $oDavModule = Api::GetModule('Dav');
+        if ($oDavModule && $oDavModule->getModuleSettings()->ProductUrlForExternalClients !== '') {
+            $fullUrl = $oDavModule->getModuleSettings()->ProductUrlForExternalClients;
+        }
+
+        $sHref = rtrim($fullUrl, '\\/ ').'/?invite=';
         $oCalendarMeetingsModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
         if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule) {
             $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
-            $sHtml = strtr($sHtml, array(
+            $sHtml = strtr($sHtml, [                
                 '{{INVITE/LOCATION}}'	=> $oCalendarMeetingsModule->i18N('LOCATION'),
                 '{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
-                '{{INVITE/DESCRIPTION}}'	=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
-                '{{INVITE/INFORMATION}}'	=> $oCalendarMeetingsModule->i18N('INFORMATION', array('Email' => $sAttendee)),
+                '{{INVITE/DESCRIPTION}}'=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
+                '{{INVITE/INFORMATION}}'=> $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sAttendee]),
                 '{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
                 '{{INVITE/TENTATIVE}}'	=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
-                '{{INVITE/DECLINE}}'		=> $oCalendarMeetingsModule->i18N('DECLINE'),
-                '{{Calendar}}'			=> $sCalendarName.' '.$sAccountEmail,
+                '{{INVITE/DECLINE}}'	=> $oCalendarMeetingsModule->i18N('DECLINE'),
                 '{{Location}}'			=> $location,
                 '{{Start}}'				=> $sStartDate,
-                '{{Description}}'			=> $description,
-                '{{HrefAccept}}'			=> $sHref.$sEncodedValueAccept,
+                '{{Description}}'		=> $description,
+                '{{HrefAccept}}'		=> $sHref.$sEncodedValueAccept,
                 '{{HrefTentative}}'		=> $sHref.$sEncodedValueTentative,
-                '{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline
-            ));
+                '{{HrefDecline}}'		=> $sHref.$sEncodedValueDecline
+            ]);
         }
 
         return $sHtml;

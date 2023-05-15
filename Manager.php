@@ -40,7 +40,9 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $aData = $this->oStorage->getEvent($sUserPublicId, $sCalendarId, $sEventId);
         if ($aData !== false) {
             $oVCal = $aData['vcal'];
+//            $oVCal->METHOD = 'REQUEST';
             $oVCal->METHOD = 'REQUEST';
+//            $oVCal->METHOD = 'REQUEST';
             return $this->appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal->serialize());
         }
 
@@ -109,7 +111,6 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             if (isset($oVCal->VEVENT) && count($oVCal->VEVENT) > 0) {
                 foreach ($oVCal->VEVENT as $oVEvent) {
                     $sEventId = (string)$oVEvent->UID;
-                    $bFoundAteendee = false;
                     if (isset($oVEvent->SUMMARY)) {
                         $sSummary = (string)$oVEvent->SUMMARY;
                     }
@@ -139,16 +140,17 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             $sCN = !empty($oDefaultUser->Name) ? $oDefaultUser->Name : $sAttendee;
                         }
 
-                        $bFoundAteendee = false;
-                        if ($oVEvent->ATTENDEE) {
-                            foreach ($oVEvent->ATTENDEE as &$oAttendeeItem) {
+                        $oFoundAteendee = false;
+                        $oVEventCopy = clone $oVEvent;
+                        unset($oVEvent->ATTENDEE);
+                        if ($oVEventCopy->ATTENDEE) {
+                            foreach ($oVEventCopy->ATTENDEE as $oAttendeeItem) {
                                 $sEmail = str_replace('mailto:', '', strtolower((string)$oAttendeeItem));
                                 if (strtolower($sEmail) === strtolower($sAttendee)) {
-                                    $oAttendeeItem['CN'] = $sCN;
-                                    $oAttendeeItem['PARTSTAT'] = $sPartstat;
-                                    $oAttendeeItem['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
-
-                                    $bFoundAteendee = true;
+                                    $oFoundAteendee = $oAttendeeItem;
+                                    $oFoundAteendee['CN'] = $sCN;
+                                    $oFoundAteendee['PARTSTAT'] = $sPartstat;
+                                    $oFoundAteendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
                                 }
                             }
                         }
@@ -156,7 +158,9 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
                     $oVEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
 
-                    if (!$bFoundAteendee) {
+                    if ($oFoundAteendee) {
+                        $oVEvent->add($oFoundAteendee);
+                    } else {
                         unset($oVEvent);
                     }
                 }
@@ -186,7 +190,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                     }
                 }
 
-                if (strtoupper($sMethodOriginal) == 'REQUEST') {
+                if (strtoupper($sMethod) !== 'REQUEST') {
                     if (empty($sTo)) {
                         throw new \Aurora\Modules\CalendarMeetingsPlugin\Exceptions\Exception(
                             \Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer
