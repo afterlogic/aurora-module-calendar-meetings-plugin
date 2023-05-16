@@ -247,7 +247,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 				}
 			}
 
-			if (strtoupper($sMethodOriginal) == 'REQUEST'/* && (strtoupper($sAction) !== 'DECLINED')*/)
+			if (strtoupper($sMethodOriginal) == 'REQUEST' && (strtoupper($sAction) !== 'DECLINED'))
 			{
 				if (empty($sTo))
 				{
