@@ -48,8 +48,10 @@ class Helper
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
 			$oAccount = $oAccount ? $oAccount : \Aurora\System\Api::GetModule('Mail')->getAccountsManager()->getAccountUsedToAuthorize($oUser->PublicId);
+			
 			if ($oAccount instanceof \Aurora\Modules\Mail\Classes\Account)
 			{
+				$sFromFullEmail = \MailSo\Mime\Email::NewInstance($oAccount->Email, $oAccount->FriendlyName)->ToString();
 				$oFromAccount = null;
 				$InformatikProjectsModule = Api::GetModule('InformatikProjects');
 				if ($InformatikProjectsModule) {
