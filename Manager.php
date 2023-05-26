@@ -40,9 +40,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $aData = $this->oStorage->getEvent($sUserPublicId, $sCalendarId, $sEventId);
         if ($aData !== false) {
             $oVCal = $aData['vcal'];
-            //            $oVCal->METHOD = 'REQUEST';
             $oVCal->METHOD = 'REQUEST';
-            //            $oVCal->METHOD = 'REQUEST';
             return $this->appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal->serialize());
         }
 
@@ -110,6 +108,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
             if (isset($oVCal->VEVENT) && count($oVCal->VEVENT) > 0) {
                 foreach ($oVCal->VEVENT as $oVEvent) {
+                    $oFoundAteendee = false;
                     $sEventId = (string)$oVEvent->UID;
                     if (isset($oVEvent->SUMMARY)) {
                         $sSummary = (string)$oVEvent->SUMMARY;
@@ -140,7 +139,6 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             $sCN = !empty($oDefaultUser->Name) ? $oDefaultUser->Name : $sAttendee;
                         }
 
-                        $oFoundAteendee = false;
                         $oVEventCopy = clone $oVEvent;
                         unset($oVEvent->ATTENDEE);
                         if ($oVEventCopy->ATTENDEE) {
@@ -180,6 +178,11 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL') {
                             $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
                         } else {
+                            
+                            if (isset($oVCal->VEVENT[0]->{'RECURRENCE-ID'})) {
+                                unset($oVCal->VEVENT[0]->{'RECURRENCE-ID'});
+                            }
+
                             $this->oStorage->updateEventRaw(
                                 $oDefaultUser->PublicId,
                                 $sCalendarId,

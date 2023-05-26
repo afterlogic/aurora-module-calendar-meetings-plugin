@@ -10,6 +10,7 @@ namespace Aurora\Modules\CalendarMeetingsPlugin;
 use Aurora\Modules\Core\Module as CoreModule;
 use Aurora\Modules\Calendar\Module as CalendarModule;
 use Aurora\Modules\Calendar\Classes\Helper as CalendarHelper;
+use MailSo\Mime\Email;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -261,9 +262,13 @@ class Module extends \Aurora\System\Module\AbstractModule
                 }
                 $sAttendee = $aInviteValues['attendee'];
                 if (!empty($sAttendee)) {
+
+                    $oAttendee = Email::Parse($sAttendee);
+                    $sAttendee = $oAttendee->GetEmail();
+
                     if (isset($oEvent) && isset($oEvent['vcal']) && $oEvent['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                         $oVCal = $oEvent['vcal'];
-                        //                        $oVCal->METHOD = 'REQUEST';
+                        $oVCal->METHOD = 'REQUEST';
                         $sData = $oVCal->serialize();
                         $oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
                         if ($oAttendeeUser) {
@@ -271,7 +276,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                         $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData);
                     }
-                    // $this->getManager()->updateAppointment($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
+                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
                 }
             }
         }
