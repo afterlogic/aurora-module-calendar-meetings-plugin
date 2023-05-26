@@ -178,7 +178,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL') {
                             $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
                         } else {
-                            
+
                             if (isset($oVCal->VEVENT[0]->{'RECURRENCE-ID'})) {
                                 unset($oVCal->VEVENT[0]->{'RECURRENCE-ID'});
                             }
