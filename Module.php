@@ -276,7 +276,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                         $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData);
                     }
-                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
+//                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
                 }
             }
         }
