@@ -144,7 +144,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             $aEventData =  $this->getManager()->getEvent($sUserPublicId, $CalendarId, $EventId);
             if (isset($aEventData) && isset($aEventData['vcal']) && $aEventData['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                 $oVCal = $aEventData['vcal'];
-                //                $oVCal->METHOD = 'REQUEST';
+                $oVCal->METHOD = 'REQUEST';
                 $sData = $oVCal->serialize();
             }
         } elseif (!empty($File)) {
@@ -276,7 +276,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                         $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData);
                     }
-                    //                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
+                    //
+//                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
                 }
             }
         }
