@@ -470,15 +470,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 						$oCalendar =  Api::GetModule('Calendar')->GetCalendar($sUserPublicId, $oEvent->IdCalendar);
 
+						$sEventUid = (string)$oVEvent->UID;
 						if (!isset($sHtml)) {
 							$sFinalHtml = MeetingsHelper::createHtmlFromEvent(
-								$oEvent->IdCalendar, 
-								$oVEvent->Id, 
-								$oVEvent->Location, 
-								$oVEvent->Description, 
-								$oUser->PublicId, 
-								$sAttendee, 
-								$oCalendar->DisplayName, 
+								$oEvent->IdCalendar,
+								$sEventUid,
+								$oVEvent->Location,
+								$oVEvent->Description,
+								$oUser->PublicId,
+								$sAttendee,
+								$oCalendar->DisplayName,
 								$sStartDate
 							);
 						} else {
@@ -486,7 +487,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 								'attendee' => $sAttendee,
 								'organizer' => $oUser->PublicId,
 								'calendarId' => $oEvent->IdCalendar,
-								'eventId' => $oVEvent->Id
+								'eventId' => $sEventUid
 							);
 							$sHref = MeetingsHelper::getDomainForInvitation($sAttendee) . '/?invite=';
 					
