@@ -262,7 +262,6 @@ class Module extends \Aurora\System\Module\AbstractModule
                 }
                 $sAttendee = $aInviteValues['attendee'];
                 if (!empty($sAttendee)) {
-
                     $oAttendee = Email::Parse($sAttendee);
                     $sAttendee = $oAttendee->GetEmail();
 

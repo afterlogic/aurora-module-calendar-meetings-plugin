@@ -100,72 +100,63 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $bResult = false;
         $sEventId = null;
 
-        $sTo = $sSubject = $sBody = $sSummary = '';
+        $sTo = $sSubject = $sSummary = '';
 
         $oVCal = \Sabre\VObject\Reader::read($sData);
         if ($oVCal) {
             $sMethod = $sMethodOriginal = (string) $oVCal->METHOD;
 
             if (isset($oVCal->VEVENT) && count($oVCal->VEVENT) > 0) {
-                foreach ($oVCal->VEVENT as $oVEvent) {
-                    $oFoundAteendee = false;
-                    $sEventId = (string)$oVEvent->UID;
-                    if (isset($oVEvent->SUMMARY)) {
-                        $sSummary = (string)$oVEvent->SUMMARY;
+                $oVEvent = $oVCal->VEVENT[0];
+                $oFoundAteendee = false;
+                $sEventId = (string)$oVEvent->UID;
+                if (isset($oVEvent->SUMMARY)) {
+                    $sSummary = (string)$oVEvent->SUMMARY;
+                }
+                if (isset($oVEvent->ORGANIZER)) {
+                    $sTo = str_replace('mailto:', '', strtolower((string)$oVEvent->ORGANIZER));
+                    $sTo = str_replace('principals/', '', $sTo);
+                }
+                if (strtoupper($sMethodOriginal) === 'REQUEST') {
+                    $sMethod = 'REPLY';
+                    $sSubject = $sSummary;
+
+                    $sPartstat = strtoupper($sAction);
+                    switch ($sPartstat) {
+                        case 'ACCEPTED':
+                            $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_ACCEPTED') . ': '. $sSubject;
+                            break;
+                        case 'DECLINED':
+                            $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_DECLINED') . ': '. $sSubject;
+                            break;
+                        case 'TENTATIVE':
+                            $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_TENTATIVE') . ': '. $sSubject;
+                            break;
                     }
-                    if (isset($oVEvent->ORGANIZER)) {
-                        $sTo = str_replace('mailto:', '', strtolower((string)$oVEvent->ORGANIZER));
-                        $sTo = str_replace('principals/', '', $sTo);
+
+                    $sCN = '';
+                    if ($oDefaultUser && $sAttendee ===  $oDefaultUser->PublicId) {
+                        $sCN = !empty($oDefaultUser->Name) ? $oDefaultUser->Name : $sAttendee;
                     }
-                    if (strtoupper($sMethodOriginal) === 'REQUEST') {
-                        $sMethod = 'REPLY';
-                        $sSubject = $sSummary;
 
-                        $sPartstat = strtoupper($sAction);
-                        switch ($sPartstat) {
-                            case 'ACCEPTED':
-                                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_ACCEPTED') . ': '. $sSubject;
-                                break;
-                            case 'DECLINED':
-                                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_DECLINED') . ': '. $sSubject;
-                                break;
-                            case 'TENTATIVE':
-                                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_TENTATIVE') . ': '. $sSubject;
-                                break;
-                        }
-
-                        $sCN = '';
-                        if ($oDefaultUser && $sAttendee ===  $oDefaultUser->PublicId) {
-                            $sCN = !empty($oDefaultUser->Name) ? $oDefaultUser->Name : $sAttendee;
-                        }
-
-                        $oVEventCopy = clone $oVEvent;
-                        unset($oVEvent->ATTENDEE);
-                        if ($oVEventCopy->ATTENDEE) {
-                            foreach ($oVEventCopy->ATTENDEE as $oAttendeeItem) {
-                                $sEmail = str_replace('mailto:', '', strtolower((string)$oAttendeeItem));
-                                if (strtolower($sEmail) === strtolower($sAttendee)) {
-                                    $oFoundAteendee = $oAttendeeItem;
-                                    $oFoundAteendee['CN'] = $sCN;
-                                    $oFoundAteendee['PARTSTAT'] = $sPartstat;
-                                    $oFoundAteendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
-                                }
+                    if ($oVEvent->ATTENDEE) {
+                        foreach ($oVEvent->ATTENDEE as $oAttendeeItem) {
+                            $sEmail = str_replace('mailto:', '', strtolower((string)$oAttendeeItem));
+                            if (strtolower($sEmail) === strtolower($sAttendee)) {
+                                $oFoundAteendee = $oAttendeeItem;
+                                $oAttendeeItem['CN'] = $sCN;
+                                $oAttendeeItem['PARTSTAT'] = $sPartstat;
+                                $oAttendeeItem['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
                             }
                         }
                     }
-
-                    $oVEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
-
-                    if ($oFoundAteendee) {
-                        $oVEvent->add($oFoundAteendee);
-                    } else {
-                        unset($oVEvent);
-                    }
                 }
-                $oVCalResult = clone $oVCal;
-                $oVCalResult->METHOD = $sMethod;
 
+                $oVEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
+
+                // reaction of the attendee when clicking on the link
                 if ($sUserPublicId === null) {
+                    // getting default calendar for attendee
                     $oCalendar = $this->getDefaultCalendar($oDefaultUser->PublicId);
                     if ($oCalendar) {
                         $sCalendarId = $oCalendar->Id;
@@ -178,7 +169,6 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL') {
                             $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
                         } else {
-
                             if (isset($oVCal->VEVENT[0]->{'RECURRENCE-ID'})) {
                                 unset($oVCal->VEVENT[0]->{'RECURRENCE-ID'});
                             }
@@ -199,11 +189,19 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             \Aurora\Modules\CalendarMeetingsPlugin\Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer
                         );
                     } elseif ($oDefaultUser instanceof User) {
+                        $oVCalForSend = clone $oVCal;
+                        $oVCalForSend->METHOD = $sMethod;
+                        if ($oFoundAteendee) {
+                            $oVEventForSend = $oVCalForSend->VEVENT[0];
+                            unset($oVEventForSend->ATTENDEE);
+                            $oVEventForSend->ATTENDEE = $oFoundAteendee;
+                        }
+
                         $bResult = \Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper::sendAppointmentMessage(
                             $oDefaultUser->PublicId,
                             $sTo,
                             $sSubject,
-                            $oVCalResult,
+                            $oVCalForSend,
                             $sMethod,
                             '',
                             $oFromAccount,
