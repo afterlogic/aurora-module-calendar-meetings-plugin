@@ -338,7 +338,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 						if ($oAttendeeUser) {
 							$sOrganizerPublicId = null;
 						}
+						$prevState = Api::skipCheckUserRole(true);
 						$this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $aInviteValues['calendarId'], $sData);
+						Api::skipCheckUserRole($prevState);
 					}
 					// $this->getManager()->updateAppointment($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
 				}
