@@ -1,9 +1,16 @@
-<div style="padding: 10px; font-size: 12px; text-align: center;">
-	<div style="border: 4px solid {{COLOR}}; padding: 15px; width: 370px; margin-left: auto; margin-right: auto;">
-		<h2 style="margin: 5px; font-size: 18px; line-height: 1.4;">{{EVENT_NAME}}</h2>
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link type="text/css" rel="stylesheet" href="./static/styles/themes/{{THEME}}/styles.css" />
+</head>
+<body class="public-page-view">
+	<div class="public-page-card">
+		<h2>{{EVENT_NAME}}</h2>
 		<span>{{EVENT_BEGIN}} {{EVENT_DATE}}</span><br/>
-		<span>{{CALENDAR}}: {{CALENDAR_NAME}}</span><br/><br/>
 		<span>{{EVENT_DESCRIPTION}}</span><br/>
-		<span style="color: {{ACTION_COLOR}};">{{EVENT_ACTION}}</span><br/>
+		<span class="status" style="color: {{ACTION_COLOR}};">{{EVENT_ACTION}}</span><br/>
 	</div>
-</div>
+</body>
+</html>
