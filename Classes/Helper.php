@@ -235,17 +235,17 @@ class Helper
 			}
 
 			$sHtml = strtr($sHtml, array(
-				'{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
+				'{{INVITE/WHEN}}'			=> $oCalendarMeetingsModule->I18N('WHEN'),
 				'{{INVITE/INFORMATION}}'	=> $oCalendarMeetingsModule->i18N('INFORMATION', array('Email' => $sAttendee)),
-				'{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
-				'{{INVITE/TENTATIVE}}'	=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
+				'{{INVITE/ACCEPT}}'			=> $oCalendarMeetingsModule->i18N('ACCEPT'),
+				'{{INVITE/TENTATIVE}}'		=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
 				'{{INVITE/DECLINE}}'		=> $oCalendarMeetingsModule->i18N('DECLINE'),
-				'{{Calendar}}'			=> $sCalendarName.' '.$sAccountEmail,
+				'{{Calendar}}'				=> $sCalendarName.' '.$sAccountEmail,
 				'{{LocationBlock}}'			=> $sLocationBlock,
-				'{{Start}}'				=> $sStartDate,
-				'{{DescriptionBlock}}'			=> $sDescriptionBlock,
+				'{{Start}}'					=> $sStartDate,
+				'{{DescriptionBlock}}'		=> $sDescriptionBlock,
 				'{{HrefAccept}}'			=> $sHref.$sEncodedValueAccept,
-				'{{HrefTentative}}'		=> $sHref.$sEncodedValueTentative,
+				'{{HrefTentative}}'			=> $sHref.$sEncodedValueTentative,
 				'{{HrefDecline}}'			=> $sHref.$sEncodedValueDecline
 			));
 		}
