@@ -170,6 +170,46 @@ class Helper
 		return $email;
 	}
 
+	public static function getMainAccountFriendlyName($sUserPublicId)
+	{
+		$sFriendlyName = '';
+		$MailModule = Api::GetModule('Mail');
+		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserByPublicId($sUserPublicId);
+		if ($MailModule && $oUser) {
+			$oMainAccount = $MailModule->getAccountsManager()->getAccountByEmail($sUserPublicId, $oUser->Id);
+			if ($oMainAccount && !empty($oMainAccount->FriendlyName)) {
+				$sFriendlyName = $oMainAccount->FriendlyName;
+			}
+		}
+
+		return $sFriendlyName;
+	}
+
+	public static function getCorrectedSenderEmail($sOrganizerEmail, $sAttendee)
+	{
+		$InformatikProjectsModule = Api::GetModule('InformatikProjects');
+		if ($InformatikProjectsModule) {
+			$senderForExternalRecipients = $InformatikProjectsModule->getConfig('SenderForExternalRecipients');
+			$oToEmail = \MailSo\Mime\Email::Parse($sAttendee);
+			if (!empty($senderForExternalRecipients) && self::isEmailExternal($oToEmail->GetEmail())) {
+				$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
+				$sFromEmail = $oEmail->GetEmail();
+				$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserByPublicId($sFromEmail);
+				if ($oUser) {
+					$MailModule = Api::GetModule('Mail');
+					if ($MailModule) {
+						$oFromAccount = $MailModule->getAccountsManager()->getAccountByEmail($sFromEmail, $oUser->Id);
+						if ($oFromAccount) {
+							$sOrganizerEmail = $oFromAccount->Email;
+						}
+					}
+				}
+			}
+		}
+
+		return $sOrganizerEmail;
+	}
+
 	public static function getDomainForInvitation($email)
 	{
 		$domainForInvitation = '';

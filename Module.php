@@ -534,43 +534,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 							}
 						}
 
-						$oVCalResult->METHOD = 'REQUEST';
-
-
-						$sFriendlyName = '';
-						$MailModule = Api::GetModule('Mail');
-						if ($MailModule) {
-							$oMainAccount = $MailModule->getAccountsManager()->getAccountByEmail($sUserPublicId, $oUser->Id);
-							if ($oMainAccount && !empty($oMainAccount->FriendlyName)) {
-								$sFriendlyName = $oMainAccount->FriendlyName;
-							}
+						if (MeetingsHelper::isEmailExternal($sAttendee)) {
+							$sOrganizerEmail = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
+						} else {
+							$sOrganizerEmail = $sUserPublicId;
 						}
-
-						$sOrganizerEmail = $sUserPublicId;
-						$InformatikProjectsModule = Api::GetModule('InformatikProjects');
-						if ($InformatikProjectsModule) {
-							$senderForExternalRecipients = $InformatikProjectsModule->getConfig('SenderForExternalRecipients');
-							$oToEmail = \MailSo\Mime\Email::Parse($sAttendee);
-							if (!empty($senderForExternalRecipients) && Classes\Helper::isEmailExternal($oToEmail->GetEmail())) {
-								$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
-								$sFromEmail = $oEmail->GetEmail();
-								$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserByPublicId($sFromEmail);
-								if ($oUser) {
-									$MailModule = Api::GetModule('Mail');
-									if ($MailModule) {
-										$oFromAccount = $MailModule->getAccountsManager()->getAccountByEmail($sFromEmail, $oUser->Id);
-										if ($oFromAccount) {
-											$sOrganizerEmail = $oFromAccount->Email;
-										}
-									}
-								}
-							}
-						}
-
+						
 						$oVEventResult->ORGANIZER = $sOrganizerEmail;
+						$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
 						if (!empty($sFriendlyName)) {
 							$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
 						}
+
+						$oVCalResult->METHOD = 'REQUEST';
 
 						MeetingsHelper::sendAppointmentMessage(
 							$sUserPublicId, 
@@ -616,14 +592,37 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 					if (isset($oVEvent->ATTENDEE) && ($bRrule ? $bNextRepeatFore : $bEventFore))
 					{
+						$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
+
 						foreach($oVEvent->ATTENDEE as $oAttendee)
 						{
-							$sEmail = str_replace('mailto:', '', strtolower((string)$oAttendee));
+							$sAttendee = str_replace('mailto:', '', strtolower((string)$oAttendee));
 
 							$oVCal->METHOD = 'CANCEL';
 							$sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
 
-							MeetingsHelper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCal->serialize(), 'REQUEST');
+							$oVCalResult = clone $oVCal;
+							$oVEventResult = $oVCalResult->VEVENT[$iIndex];
+
+							if (MeetingsHelper::isEmailExternal($sAttendee)) {
+								$sOrganizerEmail = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
+							} else {
+								$sOrganizerEmail = $sUserPublicId;
+							}
+							
+							$oVEventResult->ORGANIZER = $sOrganizerEmail;							
+							if (!empty($sFriendlyName)) {
+								$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
+							}
+
+							MeetingsHelper::sendAppointmentMessage(
+								$sUserPublicId,
+								$sAttendee,
+								$sSubject,
+								$oVCalResult->serialize(),
+								'REQUEST'
+							);
+
 							unset($oVCal->METHOD);
 						}
 					}
