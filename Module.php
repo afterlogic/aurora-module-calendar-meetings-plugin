@@ -432,7 +432,30 @@ class Module extends \Aurora\System\Module\AbstractModule
 					} elseif (!isset($oPartstat) || (isset($oPartstat) && (string)$oPartstat != 'DECLINED')) {
 						$oVCal->METHOD = 'CANCEL';
 						$sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
-						MeetingsHelper::sendAppointmentMessage($sUserPublicId, $sAttendee, $sSubject, $oVCal->serialize(), (string)$oVCal->METHOD);
+
+						if (MeetingsHelper::isEmailExternal($sAttendee)) {
+							$sOrganizerEmail = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
+						} else {
+							$sOrganizerEmail = $sUserPublicId;
+						}
+						
+						$oVCalResult = clone $oVCal;
+						$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
+
+						$oVEventResult->ORGANIZER = $sOrganizerEmail;
+						$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
+						if (!empty($sFriendlyName)) {
+							$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
+						}
+
+						MeetingsHelper::sendAppointmentMessage(
+							$sUserPublicId,
+							$sAttendee,
+							$sSubject,
+							$oVCalResult->serialize(),
+							(string) $oVCalResult->METHOD
+						);
+
 						unset($oVCal->METHOD);
 					}
 				}
