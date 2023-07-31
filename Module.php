@@ -433,20 +433,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$oVCal->METHOD = 'CANCEL';
 						$sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
 
-						if (MeetingsHelper::isEmailExternal($sAttendee)) {
-							$sOrganizerEmail = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
-						} else {
-							$sOrganizerEmail = $sUserPublicId;
-						}
-						
 						$oVCalResult = clone $oVCal;
 						$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
 
-						$oVEventResult->ORGANIZER = $sOrganizerEmail;
-						$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
-						if (!empty($sFriendlyName)) {
-							$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
-						}
+						$oVEventResult->ORGANIZER = $sUserPublicId;
+
+						$this->prepareVEventDataForExternalUser($sUserPublicId, $sAttendee, $oVEventResult);
 
 						MeetingsHelper::sendAppointmentMessage(
 							$sUserPublicId,
@@ -537,37 +529,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$oVCalResult = clone $oVCal;
 						$oVEventResult = $oVCalResult->$sComponentName[$sComponentIndex];
 
-						if (MeetingsHelper::isEmailExternal($sAttendee)) {
-							$oVEventAteendeeResult = $oVEventResult->ATTENDEE;
-							unset($oVEventResult->ATTENDEE);
-							foreach ($oVEventAteendeeResult as $oAttendeeResult) {
-								
-								$sAttendeeResult = str_replace('mailto:', '', strtolower((string)$oAttendeeResult));
-								if (!MeetingsHelper::isEmailExternal($sAttendeeResult)) {
-									$sDomainNameForReplacementInInvitations = $this->getConfig('DomainNameForReplacementInInvitations', '');
-									if (!empty($sDomainNameForReplacementInInvitations)) {
-										$oAttendeeResult->setValue('mailto:' . \MailSo\Base\Utils::GetAccountNameFromEmail($sAttendeeResult) . '@' . $sDomainNameForReplacementInInvitations);
-									}
-									if (isset($oAttendeeResult['CN'])) {
-										$oAttendeeResult['CN'] = \MailSo\Base\Utils::GetAccountNameFromEmail($oAttendeeResult['CN']);
-									}
-								}
+						$oVEventResult->ORGANIZER = $sUserPublicId;
 
-								$oVEventResult->add($oAttendeeResult);
-							}
-						}
-
-						if (MeetingsHelper::isEmailExternal($sAttendee)) {
-							$sOrganizerEmail = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
-						} else {
-							$sOrganizerEmail = $sUserPublicId;
-						}
-						
-						$oVEventResult->ORGANIZER = $sOrganizerEmail;
-						$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
-						if (!empty($sFriendlyName)) {
-							$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
-						}
+						$this->prepareVEventDataForExternalUser($sUserPublicId, $sAttendee, $oVEventResult);
 
 						$oVCalResult->METHOD = 'REQUEST';
 
@@ -615,8 +579,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 					if (isset($oVEvent->ATTENDEE) && ($bRrule ? $bNextRepeatFore : $bEventFore))
 					{
-						$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
-
 						foreach($oVEvent->ATTENDEE as $oAttendee)
 						{
 							$sAttendee = str_replace('mailto:', '', strtolower((string)$oAttendee));
@@ -627,16 +589,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 							$oVCalResult = clone $oVCal;
 							$oVEventResult = $oVCalResult->VEVENT[$iIndex];
 
-							if (MeetingsHelper::isEmailExternal($sAttendee)) {
-								$sOrganizerEmail = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
-							} else {
-								$sOrganizerEmail = $sUserPublicId;
-							}
-							
-							$oVEventResult->ORGANIZER = $sOrganizerEmail;							
-							if (!empty($sFriendlyName)) {
-								$oVEventResult->ORGANIZER['CN'] = $sFriendlyName;
-							}
+							$oVEventResult->ORGANIZER = $sUserPublicId;
+
+							$this->prepareVEventDataForExternalUser($sUserPublicId, $sAttendee, $oVEventResult);
 
 							MeetingsHelper::sendAppointmentMessage(
 								$sUserPublicId,
@@ -767,5 +722,45 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUser = Api::getAuthenticatedUser();
 
 		return MeetingsHelper::createCustomHtmlFromEvent($Location, $Description, $oUser->PublicId, $CalendarDisplayName, $StartDate);
+	}
+
+	/**
+	 * The method updated VEVENT data to prevent disclosure of real addresses of internal users.
+	 * It replaces domain names of email of internal users.
+	 * Also it replaces the organizer address with the email of central account.
+	 */
+	private function prepareVEventDataForExternalUser($sUserPublicId, $sAttendee, &$oVEvent)
+	{
+		// replacing real domain of attendees for external attendees
+		if (MeetingsHelper::isEmailExternal($sAttendee)) {
+			$oVEventAteendeeResult = $oVEvent->ATTENDEE;
+			unset($oVEvent->ATTENDEE);
+
+			foreach ($oVEventAteendeeResult as $oAttendeeResult) {
+				$sAttendeeResult = str_replace('mailto:', '', strtolower((string)$oAttendeeResult));
+				if (!MeetingsHelper::isEmailExternal($sAttendeeResult)) {
+					$sDomainNameForReplacementInInvitations = $this->getConfig('DomainNameForReplacementInInvitations', '');
+					if (!empty($sDomainNameForReplacementInInvitations)) {
+						$oAttendeeResult->setValue('mailto:' . \MailSo\Base\Utils::GetAccountNameFromEmail($sAttendeeResult) . '@' . $sDomainNameForReplacementInInvitations);
+					}
+					if (isset($oAttendeeResult['CN'])) {
+						$oAttendeeResult['CN'] = \MailSo\Base\Utils::GetAccountNameFromEmail($oAttendeeResult['CN']);
+					}
+				}
+
+				$oVEvent->add($oAttendeeResult);
+			}
+
+			// setting special organizer's email address for external attendees
+			if (MeetingsHelper::isEmailExternal($sAttendee)) {
+				$oVEvent->ORGANIZER = MeetingsHelper::getCorrectedSenderEmail($sUserPublicId, $sAttendee);
+			}
+		}
+
+		// adding sender's friendly name to organizer
+		$sFriendlyName = MeetingsHelper::getMainAccountFriendlyName($sUserPublicId);
+		if (!empty($sFriendlyName)) {
+			$oVEvent->ORGANIZER['CN'] = $sFriendlyName;
+		}
 	}
 }
