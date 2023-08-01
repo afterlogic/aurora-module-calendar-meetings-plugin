@@ -218,6 +218,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$sResult = '';
 		$aInviteValues = \Aurora\System\Api::DecodeKeyValues($this->oHttp->GetQuery('invite'));
 
+		$oModuleManager = \Aurora\System\Api::GetModuleManager();
+		$sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
+
 		if (isset($aInviteValues['organizer']))
 		{
 			$sOrganizerPublicId = $aInviteValues['organizer'];
@@ -232,8 +235,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 					{
 						if (is_string($sResult))
 						{
-							$oModuleManager = \Aurora\System\Api::GetModuleManager();
-                            $sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
 							$sResult = file_get_contents($this->GetPath().'/templates/CalendarEventInviteExternal.html');
 
 							$dt = new \DateTime();
@@ -348,6 +349,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 					// $this->getManager()->updateAppointment($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
 				}
 			}
+		}
+
+		if (!$sResult) {
+			$sResult = file_get_contents($this->GetPath().'/templates/CalendarEventInviteExternalNotFound.html');
+			$sResult = strtr($sResult, array('{{THEME}}' => $sTheme,));
 		}
 
 		return $sResult;
