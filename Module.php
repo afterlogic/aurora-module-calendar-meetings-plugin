@@ -598,7 +598,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 								$sAttendee,
 								$sSubject,
 								$oVCalResult->serialize(),
-								'REQUEST'
+								(string) $oVCal->METHOD
 							);
 
 							unset($oVCal->METHOD);
