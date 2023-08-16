@@ -57,7 +57,7 @@ class Helper
 
                         $aEmails = [];
                         $aCollection->ForeachList(function ($oEmail) use (&$aEmails) {
-                            $aEmails[strtolower($oEmail->GetEmail())] = trim($oEmail->GetDisplayName());
+                            $aEmails[strtolower($oEmail->GetEmail(true))] = trim($oEmail->GetDisplayName());
                         });
 
                         if (\is_array($aEmails)) {

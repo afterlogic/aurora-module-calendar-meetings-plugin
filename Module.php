@@ -270,10 +270,13 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $oVCal->METHOD = 'REQUEST';
                         $sData = $oVCal->serialize();
                         $oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
+                        $bIsExternalAttendee = false;
                         if ($oAttendeeUser) {
-                            $sOrganizerPublicId = null;
+                            $sOrganizerPublicId = $oAttendeeUser->PublicId;
+                        } else {
+                            $bIsExternalAttendee = true;
                         }
-                        $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData);
+                        $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, true, $bIsExternalAttendee);
                     }
                     //
 //                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
