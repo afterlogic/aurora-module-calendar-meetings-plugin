@@ -175,90 +175,97 @@ class Module extends \Aurora\System\Module\AbstractModule
                 if (empty($calendarId)) {
                     $calendarId = $this->getManager()->findEventInCalendars($sOrganizerPublicId, $aInviteValues['eventId']);
                 }
-                $oCalendar = $this->getManager()->getCalendar($sOrganizerPublicId, $calendarId);
                 $sAction = '';
-                if ($oCalendar) {
-                    $oEvent = $this->getManager()->getEvent($sOrganizerPublicId, $calendarId, $aInviteValues['eventId']);
-                    if ($oEvent && is_array($oEvent) && 0 < count($oEvent) && isset($oEvent[0])) {
-                        if (is_string($sResult)) {
-                            $oModuleManager = \Aurora\System\Api::GetModuleManager();
-                            $sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
-                            $sResult = file_get_contents($this->GetPath().'/templates/CalendarEventInviteExternal.html');
-
-                            $dt = new \DateTime();
-                            $dt->setTimestamp($oEvent[0]['startTS']);
-                            if (!$oEvent[0]['allDay']) {
-                                $sDefaultTimeZone = new \DateTimeZone($oOrganizerUser->DefaultTimeZone);
-                                $dt->setTimezone($sDefaultTimeZone);
-                            }
-
-                            $sAction = $aInviteValues['action'];
-                            $sActionColor = 'green';
-                            $sActionText = '';
-                            switch (strtoupper($sAction)) {
-                                case 'ACCEPTED':
-                                    $sActionColor = 'green';
-                                    $sActionText = 'Accepted';
-                                    break;
-                                case 'DECLINED':
-                                    $sActionColor = 'red';
-                                    $sActionText = 'Declined';
-                                    break;
-                                case 'TENTATIVE':
-                                    $sActionColor = '#A0A0A0';
-                                    $sActionText = 'Tentative';
-                                    break;
-                            }
-
-                            $sDateFormat = 'm/d/Y';
-                            $sTimeFormat = 'h:i A';
-                            switch ($oOrganizerUser->DateFormat) {
-                                case \Aurora\System\Enums\DateFormat::DDMMYYYY:
-                                    $sDateFormat = 'd/m/Y';
-                                    break;
-                                case \Aurora\System\Enums\DateFormat::DD_MONTH_YYYY:
-                                    $sDateFormat = 'd/m/Y';
-                                    break;
-                                default:
-                                    $sDateFormat = 'm/d/Y';
-                                    break;
-                            }
-                            switch ($oOrganizerUser->TimeFormat) {
-                                case \Aurora\System\Enums\TimeFormat::F24:
-                                    $sTimeFormat = 'H:i';
-                                    break;
-                                case \Aurora\System\Enums\DateFormat::DD_MONTH_YYYY:
-                                    \Aurora\System\Enums\TimeFormat::F12;
-                                    $sTimeFormat = 'h:i A';
-                                    break;
-                                default:
-                                    $sTimeFormat = 'h:i A';
-                                    break;
-                            }
-                            $sDateTime = $dt->format($sDateFormat.' '.$sTimeFormat);
-
-                            $mResult = array(
-                                '{{COLOR}}' => $oCalendar->Color,
-                                '{{EVENT_NAME}}' => $oEvent[0]['subject'],
-                                '{{EVENT_BEGIN}}' => ucfirst($this->i18N('EVENT_BEGIN')),
-                                '{{EVENT_DATE}}' => $sDateTime,
-                                '{{CALENDAR}}' => ucfirst($this->i18N('CALENDAR')),
-                                '{{CALENDAR_NAME}}' => $oCalendar->DisplayName,
-                                '{{EVENT_DESCRIPTION}}' => $oEvent[0]['description'],
-                                '{{EVENT_ACTION}}' => $sActionText,
-                                '{{ACTION_COLOR}}' => $sActionColor,
-                                '{{Theme}}' => $sTheme,
-                            );
-
-                            $sResult = strtr($sResult, $mResult);
-                        } else {
-                            \Aurora\System\Api::Log('Empty template.', \Aurora\System\Enums\LogLevel::Error);
+                $oEvent = $this->getManager()->getEvent($sOrganizerPublicId, $calendarId, $aInviteValues['eventId']);
+                $oModuleManager = \Aurora\System\Api::GetModuleManager();
+                $sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
+                if ($oEvent && is_array($oEvent) && 0 < count($oEvent) && isset($oEvent[0])) {
+                    $sResult = \file_get_contents($this->GetPath().'/templates/CalendarEventInviteExternal.html');
+                    if (is_string($sResult)) {
+                        $dt = new \DateTime();
+                        $dt->setTimestamp($oEvent[0]['startTS']);
+                        if (!$oEvent[0]['allDay']) {
+                            $sDefaultTimeZone = new \DateTimeZone($oOrganizerUser->DefaultTimeZone);
+                            $dt->setTimezone($sDefaultTimeZone);
                         }
+
+                        $sAction = $aInviteValues['action'];
+                        $sActionColor = 'green';
+                        $sActionText = '';
+                        switch (strtoupper($sAction)) {
+                            case 'ACCEPTED':
+                                $sActionColor = 'green';
+                                $sActionText = 'Accepted';
+                                break;
+                            case 'DECLINED':
+                                $sActionColor = 'red';
+                                $sActionText = 'Declined';
+                                break;
+                            case 'TENTATIVE':
+                                $sActionColor = '#A0A0A0';
+                                $sActionText = 'Tentative';
+                                break;
+                        }
+
+                        $sDateFormat = 'm/d/Y';
+                        $sTimeFormat = 'h:i A';
+                        switch ($oOrganizerUser->DateFormat) {
+                            case \Aurora\System\Enums\DateFormat::DDMMYYYY:
+                                $sDateFormat = 'd/m/Y';
+                                break;
+                            case \Aurora\System\Enums\DateFormat::DD_MONTH_YYYY:
+                                $sDateFormat = 'd/m/Y';
+                                break;
+                            default:
+                                $sDateFormat = 'm/d/Y';
+                                break;
+                        }
+                        switch ($oOrganizerUser->TimeFormat) {
+                            case \Aurora\System\Enums\TimeFormat::F24:
+                                $sTimeFormat = 'H:i';
+                                break;
+                            case \Aurora\System\Enums\DateFormat::DD_MONTH_YYYY:
+                                \Aurora\System\Enums\TimeFormat::F12;
+                                $sTimeFormat = 'h:i A';
+                                break;
+                            default:
+                                $sTimeFormat = 'h:i A';
+                                break;
+                        }
+                        $sDateTime = $dt->format($sDateFormat.' '.$sTimeFormat);
+
+                        $mResult = array(
+                            '{{EVENT_NAME}}' => $oEvent[0]['subject'],
+                            '{{EVENT_BEGIN}}' => ucfirst($this->i18N('EVENT_BEGIN')),
+                            '{{EVENT_DATE}}' => $sDateTime,
+                            '{{CALENDAR}}' => ucfirst($this->i18N('CALENDAR')),
+                            '{{EVENT_DESCRIPTION}}' => $oEvent[0]['description'],
+                            '{{EVENT_ACTION}}' => $sActionText,
+                            '{{ACTION_COLOR}}' => $sActionColor,
+                            '{{THEME_NAME}}' => $sTheme,
+                        );
+
+                        $sResult = strtr($sResult, $mResult);
                     } else {
-                        \Aurora\System\Api::Log('Event not found.', \Aurora\System\Enums\LogLevel::Error);
+                        $sResult = "Error occured";
+                        \Aurora\System\Api::Log('Empty page template.', \Aurora\System\Enums\LogLevel::Error);
                     }
                 } else {
-                    \Aurora\System\Api::Log('Calendar not found.', \Aurora\System\Enums\LogLevel::Error);
+                    \Aurora\System\Api::Log('Event not found.', \Aurora\System\Enums\LogLevel::Error);
+
+                    $sResult = file_get_contents($this->GetPath().'/templates/EventNotFound.html');
+
+                    if (is_string($sResult)) {
+                        $mResult = array(
+                            '{{INFO}}' => ucfirst($this->i18N('ERROR_APPOINTMENT_NOT_FOUND')),
+                            '{{THEME_NAME}}' => $sTheme,
+                        );
+
+                        $sResult = strtr($sResult, $mResult);
+                    } else {
+                        $sResult = "Error occured";
+                        \Aurora\System\Api::Log('Empty page template.', \Aurora\System\Enums\LogLevel::Error);
+                    }
                 }
                 $sAttendee = $aInviteValues['attendee'];
                 if (!empty($sAttendee)) {
@@ -278,8 +285,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                         $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, true, $bIsExternalAttendee);
                     }
-                    //
-//                    $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
+
+                    // $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
                 }
             }
         }
