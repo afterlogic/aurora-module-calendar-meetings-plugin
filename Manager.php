@@ -143,7 +143,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             $oVCalForSend = null;
             $bNeedsToUpdateEvent = false;
             $sPartstat = strtoupper($sAction);
-            
+
             $sCN = '';
             if ($sAttendee ===  $oUser->PublicId) {
                 $sCN = !empty($oUser->Name) ? $oUser->Name : $sAttendee;
@@ -196,7 +196,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         $oVCalForSend = clone $oVCal;
                         $oVCalForSend->METHOD = $sMethod;
 
-                        $sTo = isset($oVEvent->ORGANIZER) ? 
+                        $sTo = isset($oVEvent->ORGANIZER) ?
                         str_replace(['mailto:', 'principals/'], '', strtolower((string) $oVEvent->ORGANIZER)) : '';
                         $sSummary = isset($oVEvent->SUMMARY) ? (string) $oVEvent->SUMMARY : '';
                         $sSubject = $this->getMessageSubjectFromPartstat($sPartstat, $sSummary);
