@@ -181,6 +181,17 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 								unset($oVCal->VEVENT[0]->{'RECURRENCE-ID'});
 							}
 
+							$aData = $this->oStorage->getEvent($oDefaultUser->PublicId, $sCalendarId, $sEventId);
+							if ($aData) {
+								$oVCalOld = $aData['vcal'];
+								$aVEventsOld = $oVCalOld->getBaseComponents('VEVENT');
+	
+								if (isset($aVEventsOld) && count($aVEventsOld) > 0) {
+									$oVEventOld = $aVEventsOld[0];
+									$oVEvent->VALARM = $oVEventOld->VALARM;
+								}
+							}
+
 							$this->oStorage->updateEventRaw(
 								$oDefaultUser->PublicId,
 								$sCalendarId,
