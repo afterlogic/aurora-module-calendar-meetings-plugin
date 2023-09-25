@@ -35,7 +35,7 @@ class Helper
      *
      * @return \MailSo\Mime\Message
      */
-    public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $oVCal, $sMethod, $sHtmlBody='', $oAccount = null, $sFromEmail = null)
+    public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $oVCal, $sMethod, $sHtmlBody = '', $oAccount = null, $sFromEmail = null)
     {
         // remove VALARM from invitation mail messages
         foreach ($oVCal->VEVENT as $key => $val) {
@@ -179,24 +179,24 @@ class Helper
             $fullUrl = $oDavModule->getModuleSettings()->ProductUrlForExternalClients;
         }
 
-        $sHref = rtrim($fullUrl, '\\/ ').'/?invite=';
+        $sHref = rtrim($fullUrl, '\\/ ') . '/?invite=';
         $oCalendarMeetingsModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
         if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule) {
-            $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventInvite.html');
+            $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath() . '/templates/CalendarEventInvite.html');
             $sHtml = strtr($sHtml, [
                 '{{INVITE/LOCATION}}'	=> $oCalendarMeetingsModule->i18N('LOCATION'),
                 '{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
-                '{{INVITE/DESCRIPTION}}'=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
-                '{{INVITE/INFORMATION}}'=> $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sAttendee]),
+                '{{INVITE/DESCRIPTION}}' => $oCalendarMeetingsModule->i18N('DESCRIPTION'),
+                '{{INVITE/INFORMATION}}' => $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sAttendee]),
                 '{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
                 '{{INVITE/TENTATIVE}}'	=> $oCalendarMeetingsModule->i18N('TENTATIVE'),
                 '{{INVITE/DECLINE}}'	=> $oCalendarMeetingsModule->i18N('DECLINE'),
                 '{{Location}}'			=> $location,
                 '{{Start}}'				=> $sStartDate,
                 '{{Description}}'		=> $description,
-                '{{HrefAccept}}'		=> $sHref.$sEncodedValueAccept,
-                '{{HrefTentative}}'		=> $sHref.$sEncodedValueTentative,
-                '{{HrefDecline}}'		=> $sHref.$sEncodedValueDecline
+                '{{HrefAccept}}'		=> $sHref . $sEncodedValueAccept,
+                '{{HrefTentative}}'		=> $sHref . $sEncodedValueTentative,
+                '{{HrefDecline}}'		=> $sHref . $sEncodedValueDecline
             ]);
         }
 
@@ -295,14 +295,14 @@ class Helper
         $sActionName = self::getSelfNotificationActionName($sAction);
         $oCalendarMeetingsModule = \Aurora\System\Api::GetModule('CalendarMeetingsPlugin');
         if ($oCalendarMeetingsModule instanceof \Aurora\System\Module\AbstractModule) {
-            $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath().'/templates/CalendarEventSelfNotification.html');
+            $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath() . '/templates/CalendarEventSelfNotification.html');
             $sHtml = strtr($sHtml, [
                 '{{LOCATION}}'			=> $oCalendarMeetingsModule->i18N('LOCATION'),
                 '{{WHEN}}'				=> $oCalendarMeetingsModule->I18N('WHEN'),
                 '{{DESCRIPTION}}'		=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
                 '{{INFORMATION}}'		=> $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sEmail]),
                 '{{REACTION}}'			=> $oCalendarMeetingsModule->i18N('USER_REACTION'),
-                '{{Calendar}}'			=> $sCalendarName.' '.$sEmail,
+                '{{Calendar}}'			=> $sCalendarName . ' ' . $sEmail,
                 '{{Location}}'			=> $aEvent['location'],
                 '{{Start}}'				=> $sStartDate,
                 '{{Description}}'			=> $aEvent['description'],

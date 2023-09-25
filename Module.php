@@ -180,7 +180,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $oModuleManager = \Aurora\System\Api::GetModuleManager();
                 $sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
                 if ($oEvent && is_array($oEvent) && 0 < count($oEvent) && isset($oEvent[0])) {
-                    $sResult = \file_get_contents($this->GetPath().'/templates/CalendarEventInviteExternal.html');
+                    $sResult = \file_get_contents($this->GetPath() . '/templates/CalendarEventInviteExternal.html');
                     if (is_string($sResult)) {
                         $dt = new \DateTime();
                         $dt->setTimestamp($oEvent[0]['startTS']);
@@ -232,7 +232,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                                 $sTimeFormat = 'h:i A';
                                 break;
                         }
-                        $sDateTime = $dt->format($sDateFormat.' '.$sTimeFormat);
+                        $sDateTime = $dt->format($sDateFormat . ' ' . $sTimeFormat);
 
                         $mResult = array(
                             '{{EVENT_NAME}}' => $oEvent[0]['subject'],
@@ -253,7 +253,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 } else {
                     \Aurora\System\Api::Log('Event not found.', \Aurora\System\Enums\LogLevel::Error);
 
-                    $sResult = file_get_contents($this->GetPath().'/templates/EventNotFound.html');
+                    $sResult = file_get_contents($this->GetPath() . '/templates/EventNotFound.html');
 
                     if (is_string($sResult)) {
                         $mResult = array(
@@ -318,7 +318,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onPopulateVCalendar(&$aData, &$oVEvent)
     {
         /** @var \Sabre\VObject\Component\VEvent $oVEvent */
-        $oEvent =& $aData['oEvent'];
+        $oEvent = & $aData['oEvent'];
 
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
 

@@ -57,13 +57,13 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $sSubject = $sSummary;
         switch ($sPartstat) {
             case 'ACCEPTED':
-                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_ACCEPTED') . ': '. $sSummary;
+                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_ACCEPTED') . ': ' . $sSummary;
                 break;
             case 'DECLINED':
-                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_DECLINED') . ': '. $sSummary;
+                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_DECLINED') . ': ' . $sSummary;
                 break;
             case 'TENTATIVE':
-                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_TENTATIVE') . ': '. $sSummary;
+                $sSubject = $this->GetModule()->i18N('SUBJECT_PREFFIX_TENTATIVE') . ': ' . $sSummary;
                 break;
         }
 
@@ -238,7 +238,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         if (!$bResult) {
             Api::Log('Ics Appointment Action FALSE result!', LogLevel::Error);
             if ($sUserPublicId) {
-                Api::Log('Email: ' . $oUser->PublicId . ', Action: '. $sAction.', Data:', LogLevel::Error);
+                Api::Log('Email: ' . $oUser->PublicId . ', Action: ' . $sAction . ', Data:', LogLevel::Error);
             }
             Api::Log($sData, LogLevel::Error);
         } else {
