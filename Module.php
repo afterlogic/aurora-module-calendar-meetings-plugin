@@ -427,7 +427,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                             $oVCalResult = clone $oVCal;
                             $oVCalResult->METHOD = 'CANCEL';
-                            $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
+                            $sSubject = (string)$oVEvent->SUMMARY . ': ' . $this->i18N('SUBJECT_SUFFIX_CANCELED');
 
                             Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCalResult, 'REQUEST');
                             unset($oVCal->METHOD);
