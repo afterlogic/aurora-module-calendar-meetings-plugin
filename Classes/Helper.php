@@ -44,12 +44,18 @@ class Helper
 	 */
 	public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody='', $oAccount = null, $sFromEmail = null)
 	{
-		$oUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sUserPublicId);
+		$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
+		$oUser = $oCoreDecorator->GetUserByPublicId($sUserPublicId);
+
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$oAccount = $oAccount ? $oAccount : \Aurora\System\Api::GetModule('Mail')->getAccountsManager()->getAccountUsedToAuthorize($oUser->PublicId);
+			$oMailModule = Api::GetModule('Mail');
+
+			if ($oMailModule && !$oAccount) {
+				$oAccount = $oMailModule->getAccountsManager()->getAccountUsedToAuthorize($oUser->PublicId);
+			}
 			
-			if ($oAccount instanceof \Aurora\Modules\Mail\Classes\Account)
+			if ($oMailModule && $oAccount instanceof \Aurora\Modules\Mail\Classes\Account)
 			{
 				$sFromFullEmail = \MailSo\Mime\Email::NewInstance($oAccount->Email, $oAccount->FriendlyName)->ToString();
 				$oFromAccount = null;
@@ -68,20 +74,26 @@ class Helper
 						}
 
 						// getting account object that will be used as a sender
-						$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserByPublicId($sFromEmail);
+						$oUser = $oCoreDecorator->GetUserByPublicId($sFromEmail);
 						if ($oUser) {
-							$MailModule = Api::GetModule('Mail');
-							if ($MailModule) {
-								$oFromAccount = $MailModule->getAccountsManager()->getAccountByEmail($sFromEmail, $oUser->Id);
-							}
+							$oFromAccount = $oMailModule->getAccountsManager()->getAccountByEmail($sFromEmail, $oUser->Id);
 						}
 					}
 				}
 
 				$oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromFullEmail);
 
+				$sSentFolderName = '';
+				$oFolderCollection = $oMailModule->getMailManager()->getFolders($oAccount);
+
+				$oFolderCollection->foreachWithSubFolders(function ($oFolder) use (&$sSentFolderName) {
+					if ($oFolder && $oFolder->getType() === \Aurora\Modules\Mail\Enums\FolderType::Sent) {
+						$sSentFolderName = $oFolder->getFullName();
+					}
+				});
+
 				\Aurora\System\Api::Log('IcsAppointmentActionSendOriginalMailMessage');
-				return \Aurora\System\Api::GetModule('Mail')->getMailManager()->sendMessage($oAccount, $oMessage, null, '', '', '', [], $oFromAccount);
+				return $oMailModule->getMailManager()->sendMessage($oAccount, $oMessage, null, $sSentFolderName, '', '', [], $oFromAccount);
 			}
 		}
 
