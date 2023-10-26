@@ -318,7 +318,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onPopulateVCalendar(&$aData, &$oVEvent)
     {
         /** @var \Sabre\VObject\Component\VEvent $oVEvent */
-        $oEvent = &$aData['oEvent'];
+        $oEvent = & $aData['oEvent'];
 
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
 
@@ -427,7 +427,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                             $oVCalResult = clone $oVCal;
                             $oVCalResult->METHOD = 'CANCEL';
-                            $sSubject = (string)$oVEvent->SUMMARY . ': ' . $this->i18N('SUBJECT_SUFFIX_CANCELED');
+                            $sSubject = (string)$oVEvent->SUMMARY . ': Canceled';
 
                             Classes\Helper::sendAppointmentMessage($sUserPublicId, $sEmail, $sSubject, $oVCalResult, 'REQUEST');
                             unset($oVCal->METHOD);

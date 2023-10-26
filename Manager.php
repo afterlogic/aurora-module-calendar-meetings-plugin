@@ -181,10 +181,10 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         } else {
                             $bNeedsToUpdateEvent = true;
 
-                            $oBaseVEvent = $oVCal->getBaseComponents('VEVENT');
-                            if (!isset($oBaseVEvent[0]) && isset($oVEvent->{'RECURRENCE-ID'})) {
-                                unset($oVEvent->{'RECURRENCE-ID'});
-                            }
+                            // $oBaseVEvent = $oVCal->getBaseComponents('VEVENT');
+                            // if (!isset($oBaseVEvent[0]) && isset($oVEvent->{'RECURRENCE-ID'})) {
+                            //     unset($oVEvent->{'RECURRENCE-ID'});
+                            // }
                         }
                     }
 
@@ -207,6 +207,34 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             }
 
             if ($bNeedsToUpdateEvent) { // update event on server
+                $event = $this->oStorage->getEvent($oUser->PublicId, $sCalendarId, $sEventId);
+                if ($event) {
+                    $oVCalOld = $event['vcal'];
+                    $aBaseEventsOld = $oVCalOld->getBaseComponents('VEVENT');
+                    if (isset($aBaseEventsOld[0])) {
+                        $baseVEventOld = $aBaseEventsOld[0];
+                        if (isset($baseVEventOld->RRULE)) {
+                            $aBaseVEvent = $oVCal->getBaseComponents('VEVENT');
+                            if (!isset($aBaseVEvent[0]) && isset($oVEvent->{'RECURRENCE-ID'})) {
+                                $recurrenceId = $oVEvent->{'RECURRENCE-ID'}->getValue();
+
+                                $bFoundRecId = false;
+                                foreach ($oVCalOld->VEVENT as &$vEventOld) {
+                                    if (isset($vEventOld->{'RECURRENCE-ID'}) && $recurrenceId === $vEventOld->{'RECURRENCE-ID'}->getValue()) {
+                                        $vEventOld = $oVEvent;
+                                        $bFoundRecId = true;
+                                        break;
+                                    }
+                                }
+                                if (!$bFoundRecId) {
+                                    $oVCalOld->add($oVEvent);
+                                }
+                                $oVCal = $oVCalOld;
+                            }
+                        }
+                    }
+                }
+
                 $this->oStorage->updateEventRaw(
                     $oUser->PublicId,
                     $sCalendarId,
