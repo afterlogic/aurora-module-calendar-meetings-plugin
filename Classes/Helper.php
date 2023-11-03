@@ -57,13 +57,20 @@ class Helper
 			
 			if ($oMailModule && $oAccount instanceof \Aurora\Modules\Mail\Classes\Account)
 			{
-				$sFromFullEmail = \MailSo\Mime\Email::NewInstance($oAccount->Email, $oAccount->FriendlyName)->ToString();
+				// If From Email is explicitly set, use it. Otherwise, use the provided Account's email.
+				if ($sFromEmail) {
+					$sFromFullEmail = $sFromEmail;
+				} else {
+					$sFromFullEmail = \MailSo\Mime\Email::NewInstance($oAccount->Email, $oAccount->FriendlyName)->ToString();
+				}
 				$oFromAccount = null;
+				$oToEmail = \MailSo\Mime\Email::Parse($sTo);
 				$InformatikProjectsModule = Api::GetModule('InformatikProjects');
-				if ($InformatikProjectsModule) {
+				// If the message is going to be send to external recipient,
+				// we must replace the sender's account with the Central one 
+				if (self::isEmailExternal($oToEmail->GetEmail()) && $InformatikProjectsModule) {
 					$senderForExternalRecipients = $InformatikProjectsModule->getConfig('SenderForExternalRecipients');
-					$oToEmail = \MailSo\Mime\Email::Parse($sTo);
-					if (!empty($senderForExternalRecipients) && self::isEmailExternal($oToEmail->GetEmail())) {
+					if (!empty($senderForExternalRecipients)) {
 						$oEmail = \MailSo\Mime\Email::Parse($senderForExternalRecipients);
 						$sFromEmail = $oEmail->GetEmail();
 
