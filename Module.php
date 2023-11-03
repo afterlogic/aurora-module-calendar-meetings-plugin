@@ -335,16 +335,30 @@ class Module extends \Aurora\System\Module\AbstractModule
 				{
 					if (isset($oEvent) && isset($oEvent['vcal']) && $oEvent['vcal'] instanceof \Sabre\VObject\Component\VCalendar)
 					{
-						$oVCal = $oEvent['vcal'];
-						$oVCal->METHOD = 'REQUEST';
-						$sData = $oVCal->serialize();
-						$oAttendeeUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sAttendee);
-						if ($oAttendeeUser) {
-							$sOrganizerPublicId = null;
+						// Getting current status of prcessed attendee to chech 
+						// if sending notification message to organizer is needed
+						$sCurrentAttendeeStatus = '';
+						foreach ($oEvent['vcal']->VEvent[0]->ATTENDEE as $oVAttendee) {
+							$sAttendeeEmail = str_replace('mailto:', '', strtolower($oVAttendee->getValue()));
+							$sAttendeedStatus = isset($oVAttendee['PARTSTAT']) ? (string)$oVAttendee['PARTSTAT'] : '';
+							if ($sAttendeeEmail === $sAttendee) {
+								$sCurrentAttendeeStatus = $sAttendeedStatus;
+							}
 						}
-						$prevState = Api::skipCheckUserRole(true);
-						$this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $aInviteValues['calendarId'], $sData);
-						Api::skipCheckUserRole($prevState);
+
+						// If status is not chenged skipping the message sending
+						if ($sCurrentAttendeeStatus !== $sAction) {
+							$oVCal = $oEvent['vcal'];
+							$oVCal->METHOD = 'REQUEST';
+							$sData = $oVCal->serialize();
+							$oAttendeeUser = \Aurora\System\Api::GetModuleDecorator('Core')->GetUserByPublicId($sAttendee);
+							if ($oAttendeeUser) {
+								$sOrganizerPublicId = null;
+							}
+							$prevState = Api::skipCheckUserRole(true);
+							$this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $aInviteValues['calendarId'], $sData);
+							Api::skipCheckUserRole($prevState);
+						}
 					}
 					// $this->getManager()->updateAppointment($sOrganizerPublicId, $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
 				}
