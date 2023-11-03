@@ -189,8 +189,10 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 								if (isset($aVEventsOld) && count($aVEventsOld) > 0) {
 									$oVEventOld = $aVEventsOld[0];
 									unset($oVEvent->VALARM);
-									foreach ($oVEventOld->VALARM as $valarm) {
-										$oVEvent->add($valarm);
+									if (is_array($oVEventOld->VALARM)) {
+										foreach ($oVEventOld->VALARM as $valarm) {
+											$oVEvent->add($valarm);
+										}
 									}
 								}
 							}
