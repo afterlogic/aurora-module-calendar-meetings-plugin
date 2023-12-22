@@ -440,6 +440,48 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onUpdateEventAttendees($aData, &$oEvent)
     {
+        $aEventData =  $this->getManager()->getEvent($aData['UserPublicId'], $oEvent->IdCalendar, $oEvent->Id);
+        if (isset($aEventData[0]) && isset($aEventData[0]['attendees'])) {
+            $oldAttendees = $aEventData[0]['attendees'];
+            $newAttendees =  @json_decode($aData['attendees'], true);
+
+            $deleteAttendees = [];
+            foreach ($oldAttendees as $old) {
+                $found = false;
+                foreach ($newAttendees as $new) {
+                    if (strtolower($new['email']) === strtolower($old['email'])) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $deleteAttendees[] = $old;
+                }
+            }
+
+            $oVCalResult = clone $aEventData['vcal'];
+            $oVCalResult->METHOD = 'CANCEL';
+            $sSubject = (string) $oVCalResult->VEVENT->SUMMARY . ': Canceled';
+            $oVCalResult->VEVENT->SEQUENCE = (int) $oVCalResult->VEVENT->SEQUENCE->getValue() + 1;
+
+            foreach ($deleteAttendees as $deleteAttendee) {
+                $sEmail = $deleteAttendee['email'];
+
+                unset($oVCalResult->VEVENT->ATTENDEE);
+
+                $oVCalResult->VEVENT->add(
+                    'ATTENDEE',
+                    'mailto:' . $deleteAttendee['email'],
+                    array(
+                        'CN' => !empty($deleteAttendee['name']) ? $deleteAttendee['name'] : $deleteAttendee['email'],
+                        'PARTSTAT' => 'DECLINED'
+                    )
+                );
+
+                Classes\Helper::sendAppointmentMessage($aData['UserPublicId'], $sEmail, $sSubject, $oVCalResult, 'REQUEST');
+            }
+
+        }
         $oEvent->Attendees = @json_decode($aData['attendees'], true);
     }
 
