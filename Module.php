@@ -10,6 +10,7 @@ namespace Aurora\Modules\CalendarMeetingsPlugin;
 use Aurora\Modules\Core\Module as CoreModule;
 use Aurora\Modules\Calendar\Module as CalendarModule;
 use Aurora\Modules\Calendar\Classes\Helper as CalendarHelper;
+use Aurora\System\Api;
 use MailSo\Mime\Email;
 
 /**
@@ -283,10 +284,26 @@ class Module extends \Aurora\System\Module\AbstractModule
                         } else {
                             $bIsExternalAttendee = true;
                         }
-                        $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, true, $bIsExternalAttendee);
-                    }
+                        $actionResult = false;
+                        try {
+                            $actionResult = $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, true, $bIsExternalAttendee);
+                        } catch (\Aurora\System\Exceptions\Exception $e) {
+                            Api::LogException($e);
+                            $actionResult = false;
+                        }
+                        if (!$actionResult) {
+                            $sResult = file_get_contents($this->GetPath() . '/templates/EventNotFound.html');
 
-                    // $this->getManager()->updateAppointment($aInviteValues['organizer'], $aInviteValues['calendarId'], $aInviteValues['eventId'], $sAttendee, $aInviteValues['action']);
+                            if (is_string($sResult)) {
+                                $mResult = array(
+                                    '{{INFO}}' => ucfirst($this->i18N('ERROR_APPOINTMENT_UPDATE_STATUS')),
+                                    '{{THEME_NAME}}' => $sTheme,
+                                );
+
+                                $sResult = strtr($sResult, $mResult);
+                            }
+                        }
+                    }
                 }
             }
         }
