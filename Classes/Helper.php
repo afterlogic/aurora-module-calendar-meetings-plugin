@@ -147,7 +147,6 @@ class Helper
      * @param string $eventId
      * @param string $sAccountEmail
      * @param string $sAttendee
-     * @param string $sCalendarName
      * @param string $sStartDate
      * @param string $location
      * @param string $description
