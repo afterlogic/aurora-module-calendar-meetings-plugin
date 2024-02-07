@@ -174,7 +174,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @return array|boolean
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 */
-	public function SetAppointmentAction($UserId, $CalendarId, $EventId, $File, $AppointmentAction, $Attendee)
+	public function SetAppointmentAction($UserId, $CalendarId, $EventId, $File, $AppointmentAction, $Attendee, $AllEvents = 2, $RecurrenceId = null)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 		$sUserPublicId = \Aurora\System\Api::getUserPublicIdById($UserId);
@@ -201,7 +201,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 		if (!empty($sData))
 		{
-			$mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $sData);
+			$mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $sData, $AllEvents, $RecurrenceId);
 			if ($mProcessResult)
 			{
 				$mResult = array(

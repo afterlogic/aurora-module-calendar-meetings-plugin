@@ -8,6 +8,7 @@
 namespace Aurora\Modules\CalendarMeetingsPlugin;
 
 use Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper as MeetingsHelper;
+use Aurora\Modules\Mail\Classes\Account as MailAccount;
 use Aurora\System\Api;
 
 /**
@@ -61,7 +62,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 	 *
 	 * @return bool
 	 */
-	public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData, $bExternal = false)
+	public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData,  $AllEvents = 2, $RecurrenceId = null, $bExternal = false)
 	{
 		$oUser = null;
 		$oAttendeeUser = null;
@@ -175,7 +176,14 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 					unset($oVCal->METHOD);
 					if ($oDefaultUser) {
 						if (strtoupper($sAction) == 'DECLINED' || strtoupper($sMethod) == 'CANCEL') {
-							$this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
+							if ($AllEvents === 1 && $RecurrenceId !== null) {
+								$oEvent = new \Aurora\Modules\Calendar\Classes\Event();
+								$oEvent->IdCalendar = $sCalendarId;
+								$oEvent->Id = $sEventId;
+								$this->updateExclusion($sAttendee, $oEvent, $RecurrenceId, true);
+							} else {
+								$this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
+							}
 						} else {
 							if (isset($oVCal->VEVENT[0]->{'RECURRENCE-ID'})) {
 								unset($oVCal->VEVENT[0]->{'RECURRENCE-ID'});
