@@ -756,7 +756,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oVEventAteendeeResult = $oVEvent->ATTENDEE;
 			unset($oVEvent->ATTENDEE);
 
-			if (is_array($oVEventAteendeeResult)) {
+			if ($oVEventAteendeeResult instanceof \Sabre\VObject\Property\ICalendar\CalAddress) {
 				foreach ($oVEventAteendeeResult as $oAttendeeResult) {
 					$sAttendeeResult = str_replace('mailto:', '', strtolower((string)$oAttendeeResult));
 					if (!MeetingsHelper::isEmailExternal($sAttendeeResult)) {
