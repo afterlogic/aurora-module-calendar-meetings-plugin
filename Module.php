@@ -399,6 +399,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$sUserPublicId = $aData['UserPublicId'];
 		$oEvent = $aData['Event'];
 		$sHtml = isset($aData['appointmentMailBody']) ? $aData['appointmentMailBody'] : null;
+		$sSubjectPrexix = isset($aData['isEventUpdate']) && $aData['isEventUpdate'] ? 
+			$this->i18N('APPOINTMENT_SUBJECT_UPDATE') : $this->i18N('APPOINTMENT_SUBJECT_NEW');
 		$oVCal = $aData['VCal'];
 		$sComponentName = $aData['ComponentName'];
 		$sComponentIndex = $aData['ComponentIndex'];
@@ -556,9 +558,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$oVCalResult->METHOD = 'REQUEST';
 
 						MeetingsHelper::sendAppointmentMessage(
-							$sUserPublicId, 
+							$sUserPublicId,
 							$sAttendee, 
-							(string) $oVEventResult->SUMMARY, 
+							$sSubjectPrexix . (string) $oVEventResult->SUMMARY, 
 							$oVCalResult->serialize(), 
 							(string) $oVCalResult->METHOD, 
 							$sFinalHtml
