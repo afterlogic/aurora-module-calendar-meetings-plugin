@@ -111,7 +111,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
      *
      * @return bool
      */
-    public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData, $bIsLinkAction = false, $bIsExternalAttendee = false)
+    public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData, $AllEvents = 2, $RecurrenceId = null, $bIsLinkAction = false, $bIsExternalAttendee = false)
     {
         $oUser = null;
         $bResult = false;
@@ -138,103 +138,144 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
         /** @var \Sabre\VObject\Component\VCalendar $oVCal */
         $oVCal = \Sabre\VObject\Reader::read($sData);
+
         if ($oVCal) {
             $sMethod = strtoupper((string) $oVCal->METHOD);
-            $oVCalForSend = null;
-            $bNeedsToUpdateEvent = false;
             $sPartstat = strtoupper($sAction);
-
             $sCN = '';
             if ($sAttendee ===  $oUser->PublicId) {
                 $sCN = !empty($oUser->Name) ? $oUser->Name : $sAttendee;
             }
-            if (isset($oVCal->VEVENT)) {
-                foreach ($oVCal->VEVENT as $oVEvent) {
-                    $bFoundAteendee = false;
+            $bNeedsToUpdateEvent = false;
 
-                    // find yourself in attendees
-                    if ($oVEvent->ATTENDEE) {
-                        foreach ($oVEvent->ATTENDEE as $oAttendeeItem) {
-                            $sEmail = str_replace('mailto:', '', strtolower((string) $oAttendeeItem));
-                            if (strtolower($sEmail) === strtolower($sAttendee)) {
-                                $bFoundAteendee = true;
-                                $oAttendeeItem['CN'] = $sCN;
-                                $oAttendeeItem['PARTSTAT'] = $sPartstat;
-                                $oAttendeeItem['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
-                                break;
-                            }
-                        }
-                    }
+            // Now we need to loop through the original organizer event, to find
+            // all the instances where we have a reply for.
+            $masterEvent = $oVCal->getBaseComponent('VEVENT');
 
-                    if (!$bFoundAteendee) {
-                        continue;
-                    }
-                    $oVEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
+            if (!$masterEvent) {
+                // No master event, we can't add new instances.
+                return false;
+            }
 
-                    $sEventId = (string) $oVEvent->UID;
-
+            $sEventId = (string) $masterEvent->UID;
+            if ($AllEvents === 2) {
+                if ($sPartstat === 'DECLINED' || $sMethod === 'CANCEL') {
                     if ($sCalendarId !== false) {
-                        unset($oVCal->METHOD);
+                        $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
+                    }
+                } else {
+                    $bNeedsToUpdateEvent = true;
+                }
 
-                        if ($sPartstat == 'DECLINED' || $sMethod == 'CANCEL') {
-                            $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
-                        } else {
-                            $bNeedsToUpdateEvent = true;
-
-                            // $oBaseVEvent = $oVCal->getBaseComponents('VEVENT');
-                            // if (!isset($oBaseVEvent[0]) && isset($oVEvent->{'RECURRENCE-ID'})) {
-                            //     unset($oVEvent->{'RECURRENCE-ID'});
-                            // }
+                $attendeeFound = false;
+                if (isset($masterEvent->ATTENDEE)) {
+                    foreach ($masterEvent->ATTENDEE as $attendee) {
+                        $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
+                        if (strtolower($sEmail) === strtolower($sAttendee)) {
+                            $attendeeFound = true;
+                            $attendee['PARTSTAT'] = $sPartstat;
+                            $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+                            // Un-setting the RSVP status, because we now know
+                            // that the attendee already replied.
+                            unset($attendee['RSVP']);
+                            break;
                         }
                     }
+                }
 
-                    if ($sMethod === 'REQUEST') {
-                        $sMethod = 'REPLY';
-                    }
-
-                    if ($sMethod !== 'REQUEST') {
-                        $oVCalForSend = clone $oVCal;
-                        $oVCalForSend->METHOD = $sMethod;
-
-                        $sTo = isset($oVEvent->ORGANIZER) ?
-                        str_replace(['mailto:', 'principals/'], '', strtolower((string) $oVEvent->ORGANIZER)) : '';
-                        $sSummary = isset($oVEvent->SUMMARY) ? (string) $oVEvent->SUMMARY : '';
-                        $sSubject = $this->getMessageSubjectFromPartstat($sPartstat, $sSummary);
-                    } else {
-                        $bResult = true;
-                    }
+                if (!$attendeeFound) {
+                    // Adding a new attendee. The iTip documentation calls this
+                    // a party crasher.
+                    $attendee = $masterEvent->add('ATTENDEE', $sAttendee, [
+                        'PARTSTAT' => $sPartstat,
+                        'CN' => $sCN,
+                        'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+                    ]);
                 }
             }
 
-            if ($bNeedsToUpdateEvent) { // update event on server
-                $event = $this->oStorage->getEvent($oUser->PublicId, $sCalendarId, $sEventId);
-                if ($event) {
-                    $oVCalOld = $event['vcal'];
-                    $aBaseEventsOld = $oVCalOld->getBaseComponents('VEVENT');
-                    if (isset($aBaseEventsOld[0])) {
-                        $baseVEventOld = $aBaseEventsOld[0];
-                        if (isset($baseVEventOld->RRULE)) {
-                            $aBaseVEvent = $oVCal->getBaseComponents('VEVENT');
-                            if (!isset($aBaseVEvent[0]) && isset($oVEvent->{'RECURRENCE-ID'})) {
-                                $recurrenceId = $oVEvent->{'RECURRENCE-ID'}->getValue();
+            $masterEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
 
-                                $bFoundRecId = false;
-                                foreach ($oVCalOld->VEVENT as &$vEventOld) {
-                                    if (isset($vEventOld->{'RECURRENCE-ID'}) && $recurrenceId === $vEventOld->{'RECURRENCE-ID'}->getValue()) {
-                                        $vEventOld = $oVEvent;
-                                        $bFoundRecId = true;
-                                        break;
-                                    }
-                                }
-                                if (!$bFoundRecId) {
-                                    $oVCalOld->add($oVEvent);
-                                }
-                                $oVCal = $oVCalOld;
+            if ($AllEvents === 1 && $RecurrenceId !== null) {
+                if ($sPartstat === 'DECLINED' || $sMethod === 'CANCEL') {
+                    if ($sCalendarId !== false) {
+                        $oEvent = new \Aurora\Modules\Calendar\Classes\Event();
+                        $oEvent->IdCalendar = $sCalendarId;
+                        $oEvent->Id = $sEventId;
+                        $this->updateExclusion($sAttendee, $oEvent, $RecurrenceId, true);
+                    }
+                } else {
+                    $bNeedsToUpdateEvent = true;
+                }
+
+                $vevent = null;
+                $index = \Aurora\Modules\Calendar\Classes\Helper::isRecurrenceExists($oVCal->VEVENT, $RecurrenceId);
+                if ($index === false) {
+                    // If we got replies to instances that did not exist in the
+                    // original list, it means that new exceptions must be created.
+                    $recurrenceIterator = new \Sabre\VObject\Recur\EventIterator($oVCal, $masterEvent->UID);
+                    $found = false;
+                    $iterations = 1000;
+                    do {
+                        $newObject = $recurrenceIterator->getEventObject();
+                        $recurrenceIterator->next();
+
+                        if (isset($newObject->{'RECURRENCE-ID'})) {
+                            $iRecurrenceId = \Aurora\Modules\Calendar\Classes\Helper::getTimestamp($newObject->{'RECURRENCE-ID'}, $oUser->DefaultTimeZone);
+                            if ((int) $iRecurrenceId === (int) $RecurrenceId) {
+                                $found = true;
                             }
+                        }
+                        --$iterations;
+                    } while ($recurrenceIterator->valid() && !$found && $iterations);
+
+                    if ($found) {
+                        unset(
+                            $newObject->RRULE,
+                            $newObject->EXDATE,
+                            $newObject->RDATE
+                        );
+                        $vevent = $oVCal->add($newObject);
+                    }
+                } else {
+                    $vevent = $oVCal->VEVENT[$index];
+                }
+
+                $attendeeFound = false;
+                if (isset($vevent->ATTENDEE)) {
+                    foreach ($vevent->ATTENDEE as $attendee) {
+                        $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
+                        if (strtolower($sEmail) === strtolower($sAttendee)) {
+                            $attendeeFound = true;
+                            $attendee['PARTSTAT'] = $sPartstat;
+                            $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+                            break;
                         }
                     }
                 }
+                if ($vevent && !$attendeeFound) {
+                    // Adding a new attendee
+                    $attendee = $vevent->add('ATTENDEE', $sAttendee, [
+                        'PARTSTAT' => $sPartstat,
+                        'CN' => $sCN,
+                        'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+                    ]);
+                }
+            }
 
+            if ($sMethod === 'REQUEST') {
+                $sMethod = 'REPLY';
+            }
+
+            $oVCalForSend = clone $oVCal;
+            $oVCalForSend->METHOD = $sMethod;
+
+            $sTo = isset($masterEvent->ORGANIZER) ? str_replace(['mailto:', 'principals/'], '', strtolower((string) $masterEvent->ORGANIZER)) : '';
+            $sSummary = isset($masterEvent->SUMMARY) ? (string) $masterEvent->SUMMARY : '';
+            $sSubject = $this->getMessageSubjectFromPartstat($sPartstat, $sSummary);
+
+            if ($bNeedsToUpdateEvent) { // update event on server
+                unset($oVCal->METHOD);
                 $this->oStorage->updateEventRaw(
                     $oUser->PublicId,
                     $sCalendarId,
@@ -243,7 +284,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                 );
             }
 
-            if (isset($oVCalForSend)) { //send message to organizer
+            if ($oVCalForSend) { //send message to organizer
                 if (empty($sTo)) {
                     throw new Exceptions\Exception(
                         Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer

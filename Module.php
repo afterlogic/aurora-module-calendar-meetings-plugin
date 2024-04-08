@@ -131,7 +131,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      * @return array|boolean
      * @throws \Aurora\System\Exceptions\ApiException
      */
-    public function SetAppointmentAction($UserId, $CalendarId, $EventId, $File, $AppointmentAction, $Attendee)
+    public function SetAppointmentAction($UserId, $CalendarId, $EventId, $File, $AppointmentAction, $Attendee, $AllEvents = 2, $RecurrenceId = null)
     {
         \Aurora\System\Api::CheckAccess($UserId);
         $sUserPublicId = \Aurora\System\Api::getUserPublicIdById($UserId);
@@ -152,7 +152,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             $sData = $this->getCacheManager()->get($sUserPublicId, $File, '', CalendarModule::GetName());
         }
         if (!empty($sData)) {
-            $mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $sData);
+            $mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $sData, $AllEvents, $RecurrenceId);
             if ($mProcessResult) {
                 $mResult = array(
                     'Uid' => $mProcessResult
@@ -286,7 +286,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                         $actionResult = false;
                         try {
-                            $actionResult = $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, true, $bIsExternalAttendee);
+                            $actionResult = $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, 2, null, true, $bIsExternalAttendee);
                         } catch (\Aurora\System\Exceptions\Exception $e) {
                             Api::LogException($e);
                             $actionResult = false;
@@ -571,9 +571,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         if (isset($oVEventResult->ATTENDEE)) {
             foreach ($oVEventResult->ATTENDEE as $oAttendee) {
-                $sAttendee = str_replace('mailto:', '', strtolower((string)$oAttendee));
+                $sAttendee = strtolower((string)$oAttendee);
                 if (in_array($sAttendee, $aAccountEmails) && isset($oAttendee['PARTSTAT']) && $sMethod !== 'SAVE') {
-                    $mResult['Attendee'] = $sAttendee;
+                    $mResult['Attendee'] = str_replace('mailto:', '', $sAttendee);
                     $mResult['Action'] = $sMethod . '-' . $oAttendee['PARTSTAT']->getValue();
                 }
             }
