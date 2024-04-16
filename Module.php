@@ -478,26 +478,27 @@ class Module extends \Aurora\System\Module\AbstractModule
 
             $oVCalResult = clone $aEventData['vcal'];
             $oVCalResult->METHOD = 'CANCEL';
-            $sSubject = (string) $oVCalResult->VEVENT->SUMMARY . ': Canceled';
-            $oVCalResult->VEVENT->SEQUENCE = (int) $oVCalResult->VEVENT->SEQUENCE->getValue() + 1;
+            if (isset($oVCalResult->VEVENT)) {
+                $sSubject = (string) $oVCalResult->VEVENT->SUMMARY . ': Canceled';
+                $oVCalResult->VEVENT->SEQUENCE = (int) $oVCalResult->VEVENT->SEQUENCE->getValue() + 1;
 
-            foreach ($deleteAttendees as $deleteAttendee) {
-                $sEmail = $deleteAttendee['email'];
+                foreach ($deleteAttendees as $deleteAttendee) {
+                    $sEmail = $deleteAttendee['email'];
 
-                unset($oVCalResult->VEVENT->ATTENDEE);
+                    unset($oVCalResult->VEVENT->ATTENDEE);
 
-                $oVCalResult->VEVENT->add(
-                    'ATTENDEE',
-                    'mailto:' . $deleteAttendee['email'],
-                    array(
-                        'CN' => !empty($deleteAttendee['name']) ? $deleteAttendee['name'] : $deleteAttendee['email'],
-                        'PARTSTAT' => 'DECLINED'
-                    )
-                );
+                    $oVCalResult->VEVENT->add(
+                        'ATTENDEE',
+                        'mailto:' . $deleteAttendee['email'],
+                        array(
+                            'CN' => !empty($deleteAttendee['name']) ? $deleteAttendee['name'] : $deleteAttendee['email'],
+                            'PARTSTAT' => 'DECLINED'
+                        )
+                    );
 
-                Classes\Helper::sendAppointmentMessage($aData['UserPublicId'], $sEmail, $sSubject, $oVCalResult, 'REQUEST');
+                    Classes\Helper::sendAppointmentMessage($aData['UserPublicId'], $sEmail, $sSubject, $oVCalResult, 'REQUEST');
+                }
             }
-
         }
         $oEvent->Attendees = @json_decode($aData['attendees'], true);
     }
