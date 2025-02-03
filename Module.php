@@ -356,7 +356,15 @@ class Module extends \Aurora\System\Module\AbstractModule
 								$sOrganizerPublicId = null;
 							}
 							$prevState = Api::skipCheckUserRole(true);
-							$this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $aInviteValues['calendarId'], $sData);
+							$oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
+							$bIsExternalAttendee = false;
+							if ($oAttendeeUser) {
+								$sOrganizerPublicId = $oAttendeeUser->PublicId;
+							} else {
+								$bIsExternalAttendee = true;
+							}
+
+							$this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $aInviteValues['calendarId'], $sData, 2, null, true, $bIsExternalAttendee);
 							Api::skipCheckUserRole($prevState);
 						}
 					}
