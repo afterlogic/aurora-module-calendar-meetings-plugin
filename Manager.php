@@ -117,6 +117,8 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         $bResult = false;
         $sEventId = null;
         $sTo = $sSubject = '';
+		$oAttendeeEmail = \MailSo\Mime\Email::parse($sAttendee);
+		$sAttendeeEmail = $oAttendeeEmail->GetEmail();
 
         $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
 
@@ -143,8 +145,8 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             $sMethod = strtoupper((string) $oVCal->METHOD);
             $sPartstat = strtoupper($sAction);
             $sCN = '';
-            if ($sAttendee ===  $oUser->PublicId) {
-                $sCN = !empty($oUser->Name) ? $oUser->Name : $sAttendee;
+            if ($sAttendeeEmail === $oUser->PublicId) {
+                $sCN = !empty($oUser->Name) ? $oUser->Name : '';
             }
             $bNeedsToUpdateEvent = false;
 
@@ -161,18 +163,18 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             if ($AllEvents === 2) {
                 if ($sPartstat === 'DECLINED' || $sMethod === 'CANCEL') {
                     if ($sCalendarId !== false) {
-                        $this->deleteEvent($sAttendee, $sCalendarId, $sEventId);
+                        $this->deleteEvent($sAttendeeEmail, $sCalendarId, $sEventId);
                     }
                 } else {
                     $bNeedsToUpdateEvent = true;
                 }
 
-                $attendeeFound = false;
+                // $attendeeFound = false;
                 if (isset($masterEvent->ATTENDEE)) {
                     foreach ($masterEvent->ATTENDEE as $attendee) {
                         $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
-                        if (strtolower($sEmail) === strtolower($sAttendee)) {
-                            $attendeeFound = true;
+                        if (strtolower($sEmail) === $oAttendeeEmail->GetEmail()) {
+                            // $attendeeFound = true;
                             $attendee['PARTSTAT'] = $sPartstat;
                             $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
                             // Un-setting the RSVP status, because we now know
@@ -183,15 +185,15 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                     }
                 }
 
-                if (!$attendeeFound) {
-                    // Adding a new attendee. The iTip documentation calls this
-                    // a party crasher.
-                    $attendee = $masterEvent->add('ATTENDEE', $sAttendee, [
-                        'PARTSTAT' => $sPartstat,
-                        'CN' => $sCN,
-                        'RESPONDED-AT' => gmdate("Ymd\THis\Z")
-                    ]);
-                }
+                // if (!$attendeeFound) {
+                //     // Adding a new attendee. The iTip documentation calls this
+                //     // a party crasher.
+                //     $attendee = $masterEvent->add('ATTENDEE', $sAttendeeEmail, [
+                //         'PARTSTAT' => $sPartstat,
+                //         'CN' => $sCN,
+                //         'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+                //     ]);
+                // }
             }
 
             $masterEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
@@ -202,7 +204,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         $oEvent = new \Aurora\Modules\Calendar\Classes\Event();
                         $oEvent->IdCalendar = $sCalendarId;
                         $oEvent->Id = $sEventId;
-                        $this->updateExclusion($sAttendee, $oEvent, $RecurrenceId, true);
+                        $this->updateExclusion($sAttendeeEmail, $oEvent, $RecurrenceId, true);
                     }
                 } else {
                     $bNeedsToUpdateEvent = true;
@@ -241,26 +243,27 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                     $vevent = $oVCal->VEVENT[$index];
                 }
 
-                $attendeeFound = false;
+                // $attendeeFound = false;
                 if (isset($vevent->ATTENDEE)) {
                     foreach ($vevent->ATTENDEE as $attendee) {
                         $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
-                        if (strtolower($sEmail) === strtolower($sAttendee)) {
-                            $attendeeFound = true;
+                        if (strtolower($sEmail) === $oAttendeeEmail->GetEmail()) {
+                            // $attendeeFound = true;
                             $attendee['PARTSTAT'] = $sPartstat;
                             $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
                             break;
                         }
                     }
                 }
-                if ($vevent && !$attendeeFound) {
-                    // Adding a new attendee
-                    $attendee = $vevent->add('ATTENDEE', $sAttendee, [
-                        'PARTSTAT' => $sPartstat,
-                        'CN' => $sCN,
-                        'RESPONDED-AT' => gmdate("Ymd\THis\Z")
-                    ]);
-                }
+
+                // if ($vevent && !$attendeeFound) {
+                //     // Adding a new attendee
+                //     $attendee = $vevent->add('ATTENDEE', $sAttendeeEmail, [
+                //         'PARTSTAT' => $sPartstat,
+                //         'CN' => $sCN,
+                //         'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+                //     ]);
+                // }
             }
 
             if ($sMethod === 'REQUEST') {
@@ -290,7 +293,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                         Enums\ErrorCodes::CannotSendAppointmentMessageNoOrganizer
                     );
                 }
-                $oFromAccount = $this->getFromAccount($oUser, $sAttendee);
+                $oFromAccount = $this->getFromAccount($oUser, $oAttendeeEmail->GetEmail());
                 $bResult = Classes\Helper::sendAppointmentMessage(
                     $oUser->PublicId,
                     $sTo,
