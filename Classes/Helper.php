@@ -184,7 +184,7 @@ class Helper
             $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath() . '/templates/CalendarEventInvite.html');
             $sHtml = strtr($sHtml, [
                 '{{INVITE/LOCATION}}'	=> $oCalendarMeetingsModule->i18N('LOCATION'),
-                '{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->I18N('WHEN'),
+                '{{INVITE/WHEN}}'		=> $oCalendarMeetingsModule->i18N('WHEN'),
                 '{{INVITE/DESCRIPTION}}' => $oCalendarMeetingsModule->i18N('DESCRIPTION'),
                 '{{INVITE/INFORMATION}}' => $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sAttendee]),
                 '{{INVITE/ACCEPT}}'		=> $oCalendarMeetingsModule->i18N('ACCEPT'),
@@ -297,7 +297,7 @@ class Helper
             $sHtml = file_get_contents($oCalendarMeetingsModule->GetPath() . '/templates/CalendarEventSelfNotification.html');
             $sHtml = strtr($sHtml, [
                 '{{LOCATION}}'			=> $oCalendarMeetingsModule->i18N('LOCATION'),
-                '{{WHEN}}'				=> $oCalendarMeetingsModule->I18N('WHEN'),
+                '{{WHEN}}'				=> $oCalendarMeetingsModule->i18N('WHEN'),
                 '{{DESCRIPTION}}'		=> $oCalendarMeetingsModule->i18N('DESCRIPTION'),
                 '{{INFORMATION}}'		=> $oCalendarMeetingsModule->i18N('INFORMATION', ['Email' => $sEmail]),
                 '{{REACTION}}'			=> $oCalendarMeetingsModule->i18N('USER_REACTION'),
