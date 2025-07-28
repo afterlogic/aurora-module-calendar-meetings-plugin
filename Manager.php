@@ -180,6 +180,9 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             // Un-setting the RSVP status, because we now know
                             // that the attendee already replied.
                             unset($attendee['RSVP']);
+
+                            // Un-setting the Reminder for event in ateendee's calendar
+                            unset($masterEvent->VALARM);
                             break;
                         }
                     }
@@ -251,6 +254,9 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             // $attendeeFound = true;
                             $attendee['PARTSTAT'] = $sPartstat;
                             $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+
+                            // Un-setting the Reminder for event in ateendee's calendar
+                            unset($vevent->VALARM);
                             break;
                         }
                     }
