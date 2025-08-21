@@ -111,7 +111,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 	 *
 	 * @return bool
 	 */
-	public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData, $AllEvents = 2, $RecurrenceId = null, $bIsLinkAction = false, $bIsExternalAttendee = false)
+	public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData, $AllEvents = 2, $RecurrenceId = null, $bIsLinkAction = false, $bIsExternalAttendee = false, $aReminders = [])
     {
         $oUser = null;
         $bResult = false;
@@ -183,6 +183,15 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
                             // Un-setting the Reminder for event in ateendee's calendar
                             unset($masterEvent->VALARM);
+                            if (count($aReminders) > 0) {
+                                foreach ($aReminders as $sOffset) {
+                                    $masterEvent->add('VALARM', array(
+                                        'TRIGGER' => \Aurora\Modules\Calendar\Classes\Helper::getOffsetInStr($sOffset),
+                                        'DESCRIPTION' => 'Alarm',
+                                        'ACTION' => 'DISPLAY'
+                                    ));
+                                }
+                            }
                             break;
                         }
                     }
@@ -257,6 +266,15 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
                             // Un-setting the Reminder for event in ateendee's calendar
                             unset($vevent->VALARM);
+                            if (count($aReminders) > 0) {
+                                foreach ($aReminders as $sOffset) {
+                                    $masterEvent->add('VALARM', array(
+                                        'TRIGGER' => \Aurora\Modules\Calendar\Classes\Helper::getOffsetInStr($sOffset),
+                                        'DESCRIPTION' => 'Alarm',
+                                        'ACTION' => 'DISPLAY'
+                                    ));
+                                }
+                            }
                             break;
                         }
                     }
