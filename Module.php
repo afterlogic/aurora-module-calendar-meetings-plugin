@@ -14,6 +14,7 @@ use Aurora\Modules\Calendar\Enums\AttendeeStatus;
 use Aurora\Modules\CalendarMeetingsPlugin\Classes\Helper as MeetingsHelper;
 use Aurora\System\Api;
 use Aurora\System\Enums\UserRole;
+use Sabre\VObject\Reader;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -185,6 +186,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 		$sData = '';
+		$VAlarm = null;
 		if (!empty($EventId))
 		{
 			$aEventData =  $this->getManager()->getEvent($sUserPublicId, $CalendarId, $EventId);
@@ -193,11 +195,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oVCal = $aEventData['vcal'];
 				$oVCal->METHOD = 'REQUEST';
 				$sData = $oVCal->serialize();
+
+           		$masterEvent = $oVCal->getBaseComponent('VEVENT');
+				if ($masterEvent && $masterEvent->VALARM) {
+					$VAlarm = $masterEvent->VALARM;
+				}
 			}
 		}
-		else if (!empty($File))
+		if (!empty($File))
 		{
 			$sData = $this->getCacheManager()->get($sUserPublicId, $File, '', \Aurora\Modules\Calendar\Module::GetName());
+			$oVCal = Reader::read($sData);
+			$masterEvent = $oVCal->getBaseComponent('VEVENT');
+			if ($masterEvent && $VAlarm) {
+				unset($masterEvent->VALARM);
+				foreach ($VAlarm as $VAlarmItem) {
+					$masterEvent->add($VAlarmItem);
+				}
+			}
+			$sData = $oVCal->serialize();
 		}
 		if (!empty($sData))
 		{

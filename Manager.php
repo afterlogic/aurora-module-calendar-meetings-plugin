@@ -182,14 +182,16 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             unset($attendee['RSVP']);
 
                             // Un-setting the Reminder for event in ateendee's calendar
-                            unset($masterEvent->VALARM);
-                            if (count($aReminders) > 0) {
-                                foreach ($aReminders as $sOffset) {
-                                    $masterEvent->add('VALARM', array(
-                                        'TRIGGER' => \Aurora\Modules\Calendar\Classes\Helper::getOffsetInStr($sOffset),
-                                        'DESCRIPTION' => 'Alarm',
-                                        'ACTION' => 'DISPLAY'
-                                    ));
+                            if ($aReminders !== null) {
+                                unset($masterEvent->VALARM);
+                                if (count($aReminders) > 0) {
+                                    foreach ($aReminders as $sOffset) {
+                                        $masterEvent->add('VALARM', array(
+                                            'TRIGGER' => \Aurora\Modules\Calendar\Classes\Helper::getOffsetInStr($sOffset),
+                                            'DESCRIPTION' => 'Alarm',
+                                            'ACTION' => 'DISPLAY'
+                                        ));
+                                    }
                                 }
                             }
                             break;
@@ -265,14 +267,16 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                             $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
 
                             // Un-setting the Reminder for event in ateendee's calendar
-                            unset($vevent->VALARM);
-                            if (count($aReminders) > 0) {
-                                foreach ($aReminders as $sOffset) {
-                                    $masterEvent->add('VALARM', array(
-                                        'TRIGGER' => \Aurora\Modules\Calendar\Classes\Helper::getOffsetInStr($sOffset),
-                                        'DESCRIPTION' => 'Alarm',
-                                        'ACTION' => 'DISPLAY'
-                                    ));
+                            if ($aReminders !== null) {
+                                unset($vevent->VALARM);
+                                if (count($aReminders) > 0) {
+                                    foreach ($aReminders as $sOffset) {
+                                        $masterEvent->add('VALARM', array(
+                                            'TRIGGER' => \Aurora\Modules\Calendar\Classes\Helper::getOffsetInStr($sOffset),
+                                            'DESCRIPTION' => 'Alarm',
+                                            'ACTION' => 'DISPLAY'
+                                        ));
+                                    }
                                 }
                             }
                             break;
