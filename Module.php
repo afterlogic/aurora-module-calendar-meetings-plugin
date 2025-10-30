@@ -133,26 +133,40 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function SetAppointmentAction($UserId, $CalendarId, $EventId, $File, $AppointmentAction, $Attendee, $AllEvents = 2, $RecurrenceId = null)
     {
-        \Aurora\System\Api::CheckAccess($UserId);
-        $sUserPublicId = \Aurora\System\Api::getUserPublicIdById($UserId);
+        Api::CheckAccess($UserId);
+        $sUserPublicId = Api::getUserPublicIdById($UserId);
         $mResult = false;
 
         if (empty($AppointmentAction) || empty($CalendarId)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
-        $sData = '';
+        $oVCal = null;
+        $newSequence = 0;
+        $oldSequence = 0;
         if (!empty($EventId)) {
             $aEventData =  $this->getManager()->getEvent($sUserPublicId, $CalendarId, $EventId);
             if (isset($aEventData) && isset($aEventData['vcal']) && $aEventData['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                 $oVCal = $aEventData['vcal'];
                 $oVCal->METHOD = 'REQUEST';
-                $sData = $oVCal->serialize();
+                if (isset($oVCal->VEVENT) && isset($oVCal->VEVENT->SEQUENCE)) {
+                    $oldSequence = $oVCal->VEVENT->SEQUENCE->getValue();
+                }
             }
-        } elseif (!empty($File)) {
-            $sData = $this->getCacheManager()->get($sUserPublicId, $File, '', CalendarModule::GetName());
         }
-        if (!empty($sData)) {
-            $mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $sData, $AllEvents, $RecurrenceId);
+        if (!empty($File)) {
+            $sNewData = $this->getCacheManager()->get($sUserPublicId, $File, '', CalendarModule::GetName());
+            /** @var \Sabre\VObject\Component\VCalendar $oVCal */
+            $oNewVCal = \Sabre\VObject\Reader::read($sNewData);
+            if (isset($oNewVCal->VEVENT) && isset($oNewVCal->VEVENT->SEQUENCE)) {
+                $newSequence = $oNewVCal->VEVENT->SEQUENCE->getValue();
+            }
+            // Use data with higher SEQUENCE
+            if ($newSequence > $oldSequence) {
+                $oVCal = $oNewVCal;
+            }
+        }
+        if ($oVCal instanceof \Sabre\VObject\Component\VCalendar) {
+            $mProcessResult = $this->getManager()->appointmentAction($sUserPublicId, $Attendee, $AppointmentAction, $CalendarId, $oVCal, $AllEvents, $RecurrenceId);
             if ($mProcessResult) {
                 $mResult = array(
                     'Uid' => $mProcessResult

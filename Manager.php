@@ -42,7 +42,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         if ($aData !== false) {
             $oVCal = $aData['vcal'];
             $oVCal->METHOD = 'REQUEST';
-            return $this->appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal->serialize());
+            return $this->appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal);
         }
 
         return $oResult;
@@ -105,13 +105,18 @@ class Manager extends \Aurora\Modules\Calendar\Manager
      *		- "DECLINED"
      *		- "TENTATIVE"
      * @param string $sCalendarId Calendar ID
-     * @param string $sData ICS data of the response
+     * @param \Sabre\VObject\Component\VCalendar $oVCal VCalendar object with ICS data of the response
+     * @param int $AllEvents  Indicator whether the response is for all events or a single event:
+     *		- 0 - single event
+     *		- 1 - all events in the series
+     *		- 2 - all events including future ones
+     * @param int|null $RecurrenceId Recurrence ID for single event response
      * @param bool $bIsLinkAction If **true**, the attendee's action on the link is assumed
      * @param bool $bIsExternalAttendee
      *
      * @return bool
      */
-    public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $sData, $AllEvents = 2, $RecurrenceId = null, $bIsLinkAction = false, $bIsExternalAttendee = false)
+    public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal, $AllEvents = 2, $RecurrenceId = null, $bIsLinkAction = false, $bIsExternalAttendee = false)
     {
         $oUser = null;
         $bResult = false;
@@ -136,9 +141,6 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             }
         }
 
-        /** @var \Sabre\VObject\Component\VCalendar $oVCal */
-        $oVCal = \Sabre\VObject\Reader::read($sData);
-
         if ($oVCal) {
             $sMethod = strtoupper((string) $oVCal->METHOD);
             $sPartstat = strtoupper($sAction);
@@ -150,14 +152,22 @@ class Manager extends \Aurora\Modules\Calendar\Manager
 
             // Now we need to loop through the original organizer event, to find
             // all the instances where we have a reply for.
-            $masterEvent = $oVCal->getBaseComponent('VEVENT');
+            $event = $oVCal->getBaseComponent('VEVENT');
 
-            if (!$masterEvent) {
-                // No master event, we can't add new instances.
-                return false;
+            if (!$event) {
+                // No master event
+                $event = $oVCal->VEVENT;
+                $oRecurrenceId = $event->{'RECURRENCE-ID'};
+                if ($oRecurrenceId) {
+                    $AllEvents = 1;
+                    $dRecurrence = $oRecurrenceId->getDateTime();
+                    $RecurrenceId = $dRecurrence->getTimestamp();
+                } else {
+                    return false;
+                }
             }
 
-            $sEventId = (string) $masterEvent->UID;
+            $sEventId = (string) $event->UID;
             if ($AllEvents === 2) {
                 if ($sPartstat === 'DECLINED' || $sMethod === 'CANCEL') {
                     if ($sCalendarId !== false) {
@@ -166,46 +176,50 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                 } else {
                     $bNeedsToUpdateEvent = true;
                 }
+            }
 
-                $attendeeFound = false;
-                if (isset($masterEvent->ATTENDEE)) {
-                    foreach ($masterEvent->ATTENDEE as $attendee) {
-                        $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
-                        if (strtolower($sEmail) === strtolower($sAttendee)) {
-                            $attendeeFound = true;
-                            $attendee['PARTSTAT'] = $sPartstat;
-                            $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
-                            // Un-setting the RSVP status, because we now know
-                            // that the attendee already replied.
-                            unset($attendee['RSVP']);
-                            break;
-                        }
+            $foundedAttendee = null;
+            if (isset($event->ATTENDEE)) {
+                foreach ($event->ATTENDEE as $attendee) {
+                    $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
+                    if (strtolower($sEmail) === strtolower($sAttendee)) {
+                        $attendee['PARTSTAT'] = $sPartstat;
+                        $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+                        // Un-setting the RSVP status, because we now know
+                        // that the attendee already replied.
+                        unset($attendee['RSVP']);
+                        $foundedAttendee = $attendee;
+                        break;
                     }
-                }
-
-                if (!$attendeeFound) {
-                    // Adding a new attendee. The iTip documentation calls this
-                    // a party crasher.
-                    $attendee = $masterEvent->add('ATTENDEE', $sAttendee, [
-                        'PARTSTAT' => $sPartstat,
-                        'CN' => $sCN,
-                        'RESPONDED-AT' => gmdate("Ymd\THis\Z")
-                    ]);
                 }
             }
 
-            $masterEvent->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
+            unset($event->ATTENDEE);
+
+            if($foundedAttendee) {
+                $event->add($foundedAttendee);
+            } else {
+                // Adding a new attendee. The iTip documentation calls this
+                // a party crasher.
+                $attendee = $event->add('ATTENDEE', 'mailto:' . $sAttendee, [
+                    'PARTSTAT' => $sPartstat,
+                    'CN' => $sCN,
+                    'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+                ]);
+            }
+
+            $event->{'LAST-MODIFIED'} = new \DateTime('now', new \DateTimeZone('UTC'));
 
             if ($AllEvents === 1 && $RecurrenceId !== null) {
-                if ($sPartstat === 'DECLINED' || $sMethod === 'CANCEL') {
-                    if ($sCalendarId !== false) {
-                        $oEvent = new \Aurora\Modules\Calendar\Classes\Event();
-                        $oEvent->IdCalendar = $sCalendarId;
-                        $oEvent->Id = $sEventId;
-                        $this->updateExclusion($sAttendee, $oEvent, $RecurrenceId, true);
-                    }
-                } else {
-                    $bNeedsToUpdateEvent = true;
+                if ($sCalendarId !== false) {
+                    $oEvent = new \Aurora\Modules\Calendar\Classes\Event();
+                    $oEvent->IdCalendar = $sCalendarId;
+                    $oEvent->Id = $sEventId;
+                    $bDelete = ($sPartstat === 'DECLINED' || $sMethod === 'CANCEL');
+
+                    $oEvent->populateFromVEvent($sUserPublicId, $event);
+
+                    $this->updateExclusion($sAttendee, $oEvent, $RecurrenceId, $bDelete);
                 }
 
                 $vevent = null;
@@ -213,7 +227,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                 if ($index === false) {
                     // If we got replies to instances that did not exist in the
                     // original list, it means that new exceptions must be created.
-                    $recurrenceIterator = new \Sabre\VObject\Recur\EventIterator($oVCal, $masterEvent->UID);
+                    $recurrenceIterator = new \Sabre\VObject\Recur\EventIterator($oVCal, $event->UID);
                     $found = false;
                     $iterations = 1000;
                     do {
@@ -241,25 +255,30 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                     $vevent = $oVCal->VEVENT[$index];
                 }
 
-                $attendeeFound = false;
+                $foundedAttendee = null;
                 if (isset($vevent->ATTENDEE)) {
                     foreach ($vevent->ATTENDEE as $attendee) {
                         $sEmail = str_replace('mailto:', '', strtolower($attendee->getValue()));
                         if (strtolower($sEmail) === strtolower($sAttendee)) {
-                            $attendeeFound = true;
                             $attendee['PARTSTAT'] = $sPartstat;
                             $attendee['RESPONDED-AT'] = gmdate("Ymd\THis\Z");
+                            $foundedAttendee = $attendee;
                             break;
                         }
                     }
                 }
-                if ($vevent && !$attendeeFound) {
-                    // Adding a new attendee
-                    $attendee = $vevent->add('ATTENDEE', $sAttendee, [
-                        'PARTSTAT' => $sPartstat,
-                        'CN' => $sCN,
-                        'RESPONDED-AT' => gmdate("Ymd\THis\Z")
-                    ]);
+                if ($vevent) {
+                    unset($vevent->ATTENDEE);
+                    if ($foundedAttendee) {
+                        $vevent->add($foundedAttendee);
+                    } else {
+                        // Adding a new attendee
+                        $attendee = $vevent->add('ATTENDEE', 'mailto:' . $sAttendee, [
+                            'PARTSTAT' => $sPartstat,
+                            'CN' => $sCN,
+                            'RESPONDED-AT' => gmdate("Ymd\THis\Z")
+                        ]);
+                    }
                 }
             }
 
@@ -270,8 +289,8 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             $oVCalForSend = clone $oVCal;
             $oVCalForSend->METHOD = $sMethod;
 
-            $sTo = isset($masterEvent->ORGANIZER) ? str_replace(['mailto:', 'principals/'], '', strtolower((string) $masterEvent->ORGANIZER)) : '';
-            $sSummary = isset($masterEvent->SUMMARY) ? (string) $masterEvent->SUMMARY : '';
+            $sTo = isset($event->ORGANIZER) ? str_replace(['mailto:', 'principals/'], '', strtolower((string) $event->ORGANIZER)) : '';
+            $sSummary = isset($event->SUMMARY) ? (string) $event->SUMMARY : '';
             $sSubject = $this->getMessageSubjectFromPartstat($sPartstat, $sSummary);
 
             if ($bNeedsToUpdateEvent) { // update event on server
@@ -309,7 +328,9 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             if ($sUserPublicId) {
                 Api::Log('Email: ' . $oUser->PublicId . ', Action: ' . $sAction . ', Data:', LogLevel::Error);
             }
-            Api::Log($sData, LogLevel::Error);
+            if ($oVCal instanceof \Sabre\VObject\Component\VCalendar) {
+                Api::Log($oVCal->serialize(), LogLevel::Error);
+            }
         } else {
             $bResult = $sEventId;
         }
