@@ -7,6 +7,7 @@
 
 namespace Aurora\Modules\CalendarMeetingsPlugin;
 
+use Aurora\Modules\Core\Module as CoreModule;
 use Aurora\Modules\Calendar\Classes\Helper;
 use Aurora\Modules\Calendar\Classes\Ics;
 use Aurora\Modules\Calendar\Classes\Parser;
