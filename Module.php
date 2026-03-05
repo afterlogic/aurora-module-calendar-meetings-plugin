@@ -12,6 +12,7 @@ use Aurora\Modules\Calendar\Module as CalendarModule;
 use Aurora\Modules\Calendar\Classes\Helper as CalendarHelper;
 use Aurora\System\Api;
 use MailSo\Mime\Email;
+use Aurora\System\Facades\Route;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -75,9 +76,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function init()
     {
-        $this->AddEntries([
-            'invite' => 'EntryInvite'
-        ]);
+        Route::add(
+            $this,
+            [
+                'invite' => 'EntryInvite'
+            ]
+        );
 
         $this->subscribeEvent('Calendar::CreateIcs', array($this, 'onCreateIcs'));
         $this->subscribeEvent('Calendar::populateVCalendar', array($this, 'onPopulateVCalendar'));
