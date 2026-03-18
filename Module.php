@@ -101,6 +101,8 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
+     * @deprecated since version 9.8.4. Use SetAppointmentAction method instead.
+     *
      * @param int $UserId
      * @param string $File
      * @param string $FromEmail
