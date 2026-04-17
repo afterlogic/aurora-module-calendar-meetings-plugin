@@ -310,6 +310,13 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                     );
                 }
                 $oFromAccount = $this->getFromAccount($oUser, $sAttendee);
+
+                $sFromEmail = $sAttendee;
+                $sFromDisplayName = '';
+                if ($bIsLinkAction) { // if the action is performed by attendee on the link, then the email is used as display name, because we don't have access to attendee's account
+                    $sFromEmail = $oUser->PublicId;
+                    $sFromDisplayName = $sAttendee;
+                }
                 $bResult = Classes\Helper::sendAppointmentMessage(
                     $oUser->PublicId,
                     $sTo,
@@ -318,7 +325,8 @@ class Manager extends \Aurora\Modules\Calendar\Manager
                     $sMethod,
                     '',
                     $oFromAccount,
-                    $sAttendee
+                    $sFromEmail,
+                    $sFromDisplayName
                 );
             }
         }

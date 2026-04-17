@@ -296,7 +296,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                     if (isset($oEvent) && isset($oEvent['vcal']) && $oEvent['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                         $oVCal = $oEvent['vcal'];
                         $oVCal->METHOD = 'REQUEST';
-                        $sData = $oVCal->serialize();
+                        // $sData = $oVCal->serialize();
                         $oAttendeeUser = CoreModule::Decorator()->GetUserByPublicId($sAttendee);
                         $bIsExternalAttendee = false;
                         if ($oAttendeeUser) {
@@ -306,7 +306,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         }
                         $actionResult = false;
                         try {
-                            $actionResult = $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $sData, 2, null, true, $bIsExternalAttendee);
+                            $actionResult = $this->getManager()->appointmentAction($sOrganizerPublicId, $sAttendee, $sAction, $calendarId, $oVCal, 2, null, true, $bIsExternalAttendee);
                         } catch (\Aurora\System\Exceptions\Exception $e) {
                             Api::LogException($e);
                             $actionResult = false;
@@ -593,9 +593,10 @@ class Module extends \Aurora\System\Module\AbstractModule
         if (isset($oVEventResult->ATTENDEE)) {
             foreach ($oVEventResult->ATTENDEE as $oAttendee) {
                 $sAttendee = strtolower((string)$oAttendee);
-                if (in_array($sAttendee, $aAccountEmails) && isset($oAttendee['PARTSTAT']) && $sMethod !== 'SAVE') {
+                if ((in_array($sAttendee, $aAccountEmails) || $sMethod === 'REPLY') && isset($oAttendee['PARTSTAT']) && $sMethod !== 'SAVE') {
                     $mResult['Attendee'] = str_replace('mailto:', '', $sAttendee);
                     $mResult['Action'] = $sMethod . '-' . $oAttendee['PARTSTAT']->getValue();
+                    break;
                 }
             }
         }

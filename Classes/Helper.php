@@ -35,7 +35,7 @@ class Helper
      *
      * @return \MailSo\Mime\Message
      */
-    public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $oVCal, $sMethod, $sHtmlBody = '', $oAccount = null, $sFromEmail = null)
+    public static function sendAppointmentMessage($sUserPublicId, $sTo, $sSubject, $oVCal, $sMethod, $sHtmlBody = '', $oAccount = null, $sFromEmail = null, $sFromDisplayName = '')
     {
         // remove VALARM from invitation mail messages
         foreach ($oVCal->VEVENT as $key => $val) {
@@ -45,7 +45,7 @@ class Helper
         }
         $sBody = $oVCal->serialize();
 
-        $oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromEmail);
+        $oMessage = self::buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod, $sHtmlBody, $oAccount, $sFromEmail, $sFromDisplayName);
         $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
         if ($oUser instanceof \Aurora\Modules\Core\Models\User) {
             $oAccount = $oAccount ? $oAccount : MailModule::getInstance()->getAccountsManager()->getAccountUsedToAuthorize($oUser->PublicId);
@@ -91,7 +91,7 @@ class Helper
      *
      * @return \MailSo\Mime\Message
      */
-    public static function buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod = null, $sHtmlBody = '', $oAccount = null, $sFromEmail = null)
+    public static function buildAppointmentMessage($sUserPublicId, $sTo, $sSubject, $sBody, $sMethod = null, $sHtmlBody = '', $oAccount = null, $sFromEmail = null, $sFromDisplayName = '')
     {
         $oMessage = null;
         $oUser = CoreModule::Decorator()->GetUserByPublicId($sUserPublicId);
@@ -99,6 +99,9 @@ class Helper
             $sFrom = $sFromEmail;
         } else {
             $sFrom = $oAccount ? $oAccount->Email : $oUser->PublicId;
+            if (empty($sFromDisplayName)) {
+                $sFromDisplayName = $oAccount ? $oAccount->FriendlyName : '';
+            }
         }
         if ($oUser instanceof \Aurora\Modules\Core\Models\User && !empty($sTo) && !empty($sBody)) {
             $oMessage = \MailSo\Mime\Message::NewInstance();
@@ -116,7 +119,7 @@ class Helper
             }
 
             $oMessage
-                ->SetFrom(\MailSo\Mime\Email::NewInstance($sFrom))
+                ->SetFrom(\MailSo\Mime\Email::NewInstance($sFrom, $sFromDisplayName))
                 ->SetSubject($sSubject)
             ;
 
