@@ -355,7 +355,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onPopulateVCalendar(&$aData, &$oVEvent)
     {
         /** @var \Sabre\VObject\Component\VEvent $oVEvent */
-        $oEvent = & $aData['oEvent'];
+        $oEvent = &$aData['oEvent'];
 
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
 
