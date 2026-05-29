@@ -147,15 +147,15 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
         $oVCal = null;
-        $newSequence = 0;
-        $oldSequence = 0;
+        $oldSequence = null;
+        $newSequence = null;
         if (!empty($EventId)) {
             $aEventData =  $this->getManager()->getEvent($sUserPublicId, $CalendarId, $EventId);
             if (isset($aEventData) && isset($aEventData['vcal']) && $aEventData['vcal'] instanceof \Sabre\VObject\Component\VCalendar) {
                 $oVCal = $aEventData['vcal'];
                 $oVCal->METHOD = 'REQUEST';
                 if (isset($oVCal->VEVENT) && isset($oVCal->VEVENT->SEQUENCE)) {
-                    $oldSequence = $oVCal->VEVENT->SEQUENCE->getValue();
+                    $oldSequence = (int) $oVCal->VEVENT->SEQUENCE->getValue();
                 }
             }
         }
@@ -164,10 +164,13 @@ class Module extends \Aurora\System\Module\AbstractModule
             /** @var \Sabre\VObject\Component\VCalendar $oVCal */
             $oNewVCal = \Sabre\VObject\Reader::read($sNewData);
             if (isset($oNewVCal->VEVENT) && isset($oNewVCal->VEVENT->SEQUENCE)) {
-                $newSequence = $oNewVCal->VEVENT->SEQUENCE->getValue();
+                $newSequence = (int) $oNewVCal->VEVENT->SEQUENCE->getValue();
             }
             // Use data with higher SEQUENCE
-            if ($newSequence > $oldSequence) {
+            $oldSeq = $oldSequence ?? 0;
+            $newSeq = $newSequence ?? 0;
+
+            if ($newSeq >= $oldSeq) {
                 $oVCal = $oNewVCal;
             }
         }
