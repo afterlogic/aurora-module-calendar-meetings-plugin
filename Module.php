@@ -340,7 +340,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function GetSettings()
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $aSettings = array(
             'AllowAppointments' => $this->oModuleSettings->AllowAppointments
