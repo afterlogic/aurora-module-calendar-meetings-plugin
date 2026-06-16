@@ -503,7 +503,12 @@ class Module extends \Aurora\System\Module\AbstractModule
             $oVCalResult->METHOD = 'CANCEL';
             if (isset($oVCalResult->VEVENT)) {
                 $sSubject = (string) $oVCalResult->VEVENT->SUMMARY . ': Canceled';
-                $oVCalResult->VEVENT->SEQUENCE = (int) $oVCalResult->VEVENT->SEQUENCE->getValue() + 1;
+
+                if (isset($oVCalResult->VEVENT->SEQUENCE)) {
+                    $oVCalResult->VEVENT->SEQUENCE = (int) $oVCalResult->VEVENT->SEQUENCE->getValue() + 1;
+                } else {
+                    $oVCalResult->VEVENT->add('SEQUENCE', 1);
+                }
 
                 foreach ($deleteAttendees as $deleteAttendee) {
                     $sEmail = $deleteAttendee['email'];
