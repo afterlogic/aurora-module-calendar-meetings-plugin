@@ -155,8 +155,13 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             $masterEvent = $oVCal->getBaseComponent('VEVENT');
 
             if (!$masterEvent) {
-                // No master event, we can't add new instances.
-                return false;
+                // If no master event found, check if there's a VEVENT with RECURRENCE-ID
+                if (isset($oVCal->VEVENT) && count($oVCal->VEVENT) > 0) {
+                    $masterEvent = $oVCal->VEVENT[0];
+                } else {
+                    // No VEVENT at all, we can't add new instances.
+                    return false;
+                }
             }
 
             $sEventId = (string) $masterEvent->UID;
