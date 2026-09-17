@@ -251,11 +251,11 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $sDateTime = $dt->format($sDateFormat . ' ' . $sTimeFormat);
 
                         $mResult = array(
-                            '{{EVENT_NAME}}' => $oEvent[0]['subject'],
+                            '{{EVENT_NAME}}' => htmlspecialchars((string) $oEvent[0]['subject']),
                             '{{EVENT_BEGIN}}' => ucfirst($this->i18N('EVENT_BEGIN')),
                             '{{EVENT_DATE}}' => $sDateTime,
                             '{{CALENDAR}}' => ucfirst($this->i18N('CALENDAR')),
-                            '{{EVENT_DESCRIPTION}}' => $oEvent[0]['description'],
+                            '{{EVENT_DESCRIPTION}}' => htmlspecialchars((string) $oEvent[0]['description']),
                             '{{EVENT_ACTION}}' => $sActionText,
                             '{{ACTION_COLOR}}' => $sActionColor,
                             '{{THEME_NAME}}' => $sTheme,
