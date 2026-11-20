@@ -12,6 +12,8 @@ use Aurora\Modules\Mail\Models\MailAccount;
 use Aurora\System\Api;
 use Aurora\Modules\Core\Module as CoreModule;
 use Aurora\System\Enums\LogLevel;
+use Sabre\VObject\Component\VCalendar;
+use Sabre\VObject\Component\VEvent;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -95,6 +97,94 @@ class Manager extends \Aurora\Modules\Calendar\Manager
         return $oFromAccount;
     }
 
+    private function applyExternalInvitationResponse($sOrganizer, $sAttendee, $sAction, $sCalendarId, $oVCal)
+    {
+        $sPartstat = strtoupper($sAction);
+        if (!$oVCal instanceof VCalendar || !isset($oVCal->VEVENT) || !in_array($sPartstat, ['ACCEPTED', 'DECLINED', 'TENTATIVE'], true)) {
+            return false;
+        }
+
+        $oVCal = clone $oVCal;
+        $oEvent = $oVCal->getBaseComponent('VEVENT') ?: $oVCal->VEVENT;
+        $sEventId = (string) $oEvent->UID;
+        $bFoundAttendee = false;
+        $bChanged = false;
+        $oNow = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        /** @var VEvent $oOccurrence */
+        foreach ($oVCal->VEVENT as $oOccurrence) {
+            if (!isset($oOccurrence->ATTENDEE)) {
+                continue;
+            }
+
+            foreach ($oOccurrence->ATTENDEE as $oAttendee) {
+                if (strcasecmp((string) $oAttendee, 'mailto:' . $sAttendee) !== 0) {
+                    continue;
+                }
+
+                $bFoundAttendee = true;
+                if ((string) $oAttendee['PARTSTAT'] !== $sPartstat || isset($oAttendee['RSVP'])) {
+                    $oAttendee['PARTSTAT'] = $sPartstat;
+                    $oAttendee['RESPONDED-AT'] = $oNow->format('Ymd\THis\Z');
+                    unset($oAttendee['RSVP']);
+                    $oOccurrence->{'LAST-MODIFIED'} = $oNow;
+                    $bChanged = true;
+                }
+            }
+        }
+
+        if (!$bChanged) {
+            return $bFoundAttendee ? $sEventId : false;
+        }
+
+        unset($oVCal->METHOD);
+        if (!$this->updateEventRaw($sOrganizer, $sCalendarId, $sEventId, $oVCal->serialize())) {
+            return false;
+        }
+
+        $oVCal->METHOD = 'REPLY';
+        /** @var VEvent $oOccurrence */
+        foreach ($oVCal->select('VEVENT') as $oOccurrence) {
+            foreach ($oOccurrence->select('ATTENDEE') as $oAttendee) {
+                if (strcasecmp((string) $oAttendee, 'mailto:' . $sAttendee) !== 0) {
+                    $oOccurrence->remove($oAttendee);
+                }
+            }
+            if (!isset($oOccurrence->ATTENDEE)) {
+                $oVCal->remove($oOccurrence);
+            }
+        }
+
+        try {
+            if (!$this->sendExternalInvitationReply($sOrganizer, $sAttendee, $sPartstat, $oVCal)) {
+                Api::Log('Unable to send external invitation response to the organizer.', LogLevel::Error);
+            }
+        } catch (\Aurora\System\Exceptions\Exception $oException) {
+            Api::LogException($oException);
+        }
+
+        return $sEventId;
+    }
+
+    protected function sendExternalInvitationReply($sOrganizer, $sAttendee, $sPartstat, VCalendar $oReply)
+    {
+        $oEvent = $oReply->getBaseComponent('VEVENT') ?: $oReply->VEVENT;
+        $sTo = str_replace(['mailto:', 'principals/'], '', strtolower((string) $oEvent->ORGANIZER));
+        $sSubject = $this->getMessageSubjectFromPartstat($sPartstat, (string) $oEvent->SUMMARY);
+
+        return Classes\Helper::sendAppointmentMessage(
+            $sOrganizer,
+            $sTo,
+            $sSubject,
+            $oReply,
+            'REPLY',
+            '',
+            null,
+            $sOrganizer,
+            $sAttendee
+        );
+    }
+
     /**
      * Allows for responding to event invitation (accept / decline / tentative). [Aurora only.](http://dev.afterlogic.com/aurora)
      *
@@ -114,10 +204,14 @@ class Manager extends \Aurora\Modules\Calendar\Manager
      * @param bool $bIsLinkAction If **true**, the attendee's action on the link is assumed
      * @param bool $bIsExternalAttendee
      *
-     * @return bool
+     * @return string|false
      */
     public function appointmentAction($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal, $AllEvents = 2, $RecurrenceId = null, $bIsLinkAction = false, $bIsExternalAttendee = false)
     {
+        if ($bIsLinkAction && $bIsExternalAttendee) {
+            return $this->applyExternalInvitationResponse($sUserPublicId, $sAttendee, $sAction, $sCalendarId, $oVCal);
+        }
+
         $oUser = null;
         $bResult = false;
         $sEventId = null;
@@ -133,7 +227,7 @@ class Manager extends \Aurora\Modules\Calendar\Manager
             );
         }
 
-        if ($bIsLinkAction && !$bIsExternalAttendee) {
+        if ($bIsLinkAction) {
             // getting default calendar for attendee
             $oCalendar = $this->getDefaultCalendar($oUser->PublicId);
             if ($oCalendar) {
